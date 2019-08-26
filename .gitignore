@@ -1,0 +1,11 @@
+view_c
+log/*
+log_demo/*
+.idea
+sftp-config.json
+kernel/www/xyxnew/dev
+kernel/www/xyxnew/pro
+kernel/config/**/env.php
+kernel/config/**/dev
+kernel/config/**/local
+kernel/log_demo
