@@ -7,6 +7,7 @@ class ExceptionFrameLib extends Exception {
 	}
     //捕获 异常 触发
     static function throwCatch($exceptionInfo ) {
+//	    var_dump($exceptionInfo);exit;
 	    if(is_object($exceptionInfo)){
             $errInfo = self::parseExceptionObjToStr($exceptionInfo);
         }elseif(is_scalar($exceptionInfo) ){//标量

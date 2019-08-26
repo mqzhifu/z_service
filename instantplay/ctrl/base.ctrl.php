@@ -40,8 +40,6 @@ class BaseCtrl {
             }
         }
 
-        LogLib::appWriteFileHash(['request:',$_REQUEST]);
-
         //接口配置信息
         include_once CONFIG_DIR.DS.IS_NAME."/api.php";
 
@@ -50,16 +48,6 @@ class BaseCtrl {
 
         //客户端请求信息
         $this->clientInfo = get_client_info();
-//        LogLib::appWriteFileHash(['get_client_info',$this->clientInfo]);
-        //初始化配置文件
-        $this->initConfig();
-
-        //添加 - 记录请求日志
-        if($ctrl != 'sdk'){
-            $id = $this->addReq();
-//            $this->access_aid = $id;
-        }
-
 
         //实例化 用户 服务 控制器
         $this->userService = new UserService();
@@ -95,12 +83,6 @@ class BaseCtrl {
             return $this->out(4009);
         }
 
-        $rs = $this->checkIfIpBlocked(get_client_ip());
-        if($rs){
-            return $this->out(5003);
-        }
-
-
 //        if(ENV == 'release'){
 //            $rs = $this->checkAPIRequestCnt();
 //            if(!$rs){
@@ -135,20 +117,6 @@ class BaseCtrl {
         if(!$memo){
             return out_pc(8042);
         }
-    }
-
-    //这个主要是游戏端开发，JSON 配置文件获取
-    function initConfig(){
-//        if(BASE_DIR.'/config/sanguoadmin'.DS."index.json"){
-//            $index = file_get_contents(BASE_DIR.'/config/sanguoadmin'.DS."index.json");
-//            $index = json_decode($index ,true);
-//            var_dump($index);exit;
-//        }
-
-//        $key = RedisPHPLib::getAppKeyById($GLOBALS['rediskey']['jsonTotal']['key'],null,'sanguoadmin');
-//        $json = RedisPHPLib::get($key,true);
-//        $GLOBALS['json'] = $json;
-
     }
 
     function out($code,$msg = "",$isLog = 1){
@@ -364,46 +332,7 @@ class BaseCtrl {
             exit;
         }
     }
-    //添加 请求日志 mysql
-    function addReq(){
-        if(RUN_ENV != 'WEBSOCKET'){
-            $contentType = get_client_content_type();
-            $request = $_REQUEST;
-            if($contentType == 'application/json'){
-                $data = file_get_contents("php://input");
-                if($data){
-                    $data = json_decode($data,true);
-                    if($data && is_array($data)){
-                        $request = array_merge($request,$data);
-                    }
-                }
-            }
-    //        LogLib::appWriteFileHash($_REQUEST);
-    //        LogLib::appWriteFileHash($contentType);
-            if(!$request){
-                $request = "-";
-            }else{
-                $request = json_encode($request);
-                if(!$request){
-                    $request = "-";
-                }
-            }
 
-            $data = array(
-                'ctrl'=>$this->ctrl,
-                'AC'=>$this->ac,
-                'a_time'=>time(),
-                'IP'=>get_client_ip(),
-                'request'=>$request,
-                'client_data'=>json_encode(get_client_info()),
-            );
-
-//            $id = AccesslogModel::db()->add($data);
-            $moreId = AccessLogMoreModel::add($data);
-            $this->accessMore_aid = $moreId;
-            return $moreId;
-        }
-    }
     //有些接口，必须是登陆后，才能访问~有些不需要
     function loginAPIExcept($ctrl = "",$ac = ""){
         if(!$ctrl && !$ac ){
@@ -569,29 +498,5 @@ class BaseCtrl {
         return false;
     }
 
-    function checkIfIpBlocked($ip) {
-        return false;
-        if (IpBlockModel::isBlocked($ip)) {
-            return true;
-        }
 
-        $key = RedisPHPLib::getAppKeyById($GLOBALS['rediskey']['ip_access_set']['key'], $ip);
-        $val = uniqid();
-        $score = microtime_float();
-        RedisPHPLib::getServerConnFD()->zAdd($key, $score, $val);
-        RedisPHPLib::getServerConnFD()->expire($key, $GLOBALS['rediskey']['ip_access_set']['expire']);
-
-        $set = RedisPHPLib::getServerConnFD()->zRangeByScore($key, $score-10, $score);
-        $cnt = count($set);
-
-        LogLib::appWriteFileHash("ip access: $ip  count10s: $cnt");
-
-        if ($cnt >= 500) {
-            IpBlockLogModel::addLog($ip,IpBlockLogModel::$_block,0);
-            IpBlockModel::Block($ip, IpBlockModel::$_type_access_too_frequent);
-            return true;
-        }
-
-        return false;
-    }
 }

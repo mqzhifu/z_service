@@ -93,4 +93,29 @@ class TokenLib {
         $data = substr($data, 10);
         return array('data'=>$data,'expire'=>$expire);
     }
+
+    static function encodeSign($data,$key){
+        $str = "";
+        foreach ($data as $k=>$v) {
+            if(!$v){
+                continue;
+            }
+
+            $str .= $k.$v;
+        }
+
+        $final = $str.$key;
+
+        return md5($final);
+
+    }
+
+    static function checkSign($data,$sign,$key){
+        $encodeSign =  self::encodeSign($data,$key);
+        if($encodeSign == $sign){
+            return true;
+        }
+
+        return false;
+    }
 }

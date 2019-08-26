@@ -265,16 +265,17 @@ function checkrobot($useragent = '') {
 }
 
 
-function out_pc($code = 200,$msg = ''){
+function out_pc($code = 200,$msg = '',$appKey = APP_NAME){
     if(!$msg){
-        if($msg === '' || $msg === null){
-            $msg = $GLOBALS['code'][$code];
+        if($msg === '' || $msg === null){//弱类型，防止0或者空数组被忽略
+            if(arrKeyIssetAndExist($GLOBALS[$appKey]['api_err_code'],$code)){
+                $msg = $GLOBALS[$appKey]['api_err_code'][$code];
+            }
         }
-
     }
     return out($code,$msg,'pc');
 }
-function out_ajax($code = 500,$msg = ""){
+function out_ajax($code = 500,$msg = "",$appKey = APP_NAME){
 //    header('Content-Type:application/json; charset=utf-8');
     if($msg === ""){
         $msg = $GLOBALS['code'][$code];
@@ -286,26 +287,6 @@ function out($code = 999,$msg = '',$type = 'ajax',$uid = 0,$isLog = 0){
     if($type == 'pc'){
         return array('msg'=>$msg,'code'=>$code);
     }else{
-//        if($isLog){
-//            if(!$uid){
-//                if(defined("LOGIN_UID")){
-//                    $uid = LOGIN_UID;
-//                }else{
-//                    $uid = 0;
-//                }
-//
-//            }
-//            $exec_time = $GLOBALS['start_time'] - microtime(TRUE);
-//            $data = array(
-//                'uid'=>$uid,
-//                'return_info'=>$code."##".json_encode($msg),
-//                'exec_time'=>$exec_time
-//            );
-//            if( strpos(APP_NAME,'admin') === false){
-//                AccesslogModel::db()->upById(ACCESS_ID,$data);
-//            }
-//        }
-
         if(RUN_ENV == 'WEBSOCKET'){
 
         }else{
@@ -313,7 +294,18 @@ function out($code = 999,$msg = '',$type = 'ajax',$uid = 0,$isLog = 0){
             exit;
         }
 
-
+//        if($isLog){
+//            if(!$uid){
+//                    $uid = 0;
+//            }
+//            $exec_time = $GLOBALS['start_time'] - microtime(TRUE);
+//            $data = array(
+//                'uid'=>$uid,
+//                'return_info'=>$code."##".json_encode($msg),
+//                'exec_time'=>$exec_time
+//            );
+//            AccesslogModel::db()->upById(ACCESS_ID,$data);
+//        }
     }
 }
 

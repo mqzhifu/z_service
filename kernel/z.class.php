@@ -5,8 +5,10 @@ define('VERSION','1.0');
 define ('DS', "/");
 //项目目录
 define ('APP_DIR', BASE_DIR .DS . APP_NAME);
+//框架名称
+define("KERNEL_NAME","kernel");
 //框架目录
-define ('KERNEL_DIR', BASE_DIR .DS . 'kernel');
+define ('KERNEL_DIR', BASE_DIR .DS .KERNEL_NAME);
 //包含项目配置文件信息
 include APP_DIR .DS. "config/env.php";
 //包含框架错误码信息
@@ -197,7 +199,7 @@ class Z{
 //        }
 //        LogLib::accessWrite();
         try{
-            $Dispath->action();
+            $returnData = $Dispath->action();
         }catch (Exception $e){
             ExceptionFrameLib::throwCatch($e);
         }
@@ -237,6 +239,9 @@ class Z{
 
         include_once KERNEL_DIR.DS ."config".DS ."api_err_code.php";
         include_once KERNEL_DIR.DS ."config".DS ."app.php";
+        include_once KERNEL_DIR.DS ."config".DS ."main.php";
+        include_once KERNEL_DIR.DS ."config".DS ."rediskey.php";
+
 
 		if(!defined('BASE_DIR'))
             self::outError(9101);

@@ -155,6 +155,38 @@ class FilterLib {
 		}
 // 	　	return $idcard;
 	}
+
+
+    static function checkIPRequest($ip = null) {
+	    if(!$ip){
+            $ip = get_client_ip();
+        }
+
+        $key = RedisPHPLib::getAppKeyById($GLOBALS[KERNEL_NAME]['rediskey']['black_ip']['key'], $ip);
+
+        if (IpBlockModel::isBlocked($ip)) {
+            return true;
+        }
+
+
+        $val = uniqid();
+        $score = microtime_float();
+        RedisPHPLib::getServerConnFD()->zAdd($key, $score, $val);
+        RedisPHPLib::getServerConnFD()->expire($key, $GLOBALS['rediskey']['ip_access_set']['expire']);
+
+        $set = RedisPHPLib::getServerConnFD()->zRangeByScore($key, $score-10, $score);
+        $cnt = count($set);
+
+        LogLib::appWriteFileHash("ip access: $ip  count10s: $cnt");
+
+        if ($cnt >= 500) {
+            IpBlockLogModel::addLog($ip,IpBlockLogModel::$_block,0);
+            IpBlockModel::Block($ip, IpBlockModel::$_type_access_too_frequent);
+            return true;
+        }
+
+        return false;
+    }
 	
 }
 
