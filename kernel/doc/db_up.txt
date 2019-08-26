@@ -1,0 +1,488 @@
+//日期 姓名 功能描述 对旧数据的影响
+sql 脚本  
+
+demo:
+
+// 2019-06-03 wdy 统计，需要增加登陆时间字段  旧数据此值会为NULL，但是得写脚本进行修复
+alter table user add column login_time int null;
+
+// 2019-06-03 xuren 内部广告聚合表，需要增加uid字段
+方便查找，减少连表操作
+alter table `inner_ad_details_byday` add column `uid` int(11) COMMENT '用户id';
+
+// 2019-06-03 xuren 账单，添加为经过暗扣后最终结算数值字段
+alter table `game_bills` add column original_after_tax float(11,2) default 0 COMMENT '未暗扣税后收入';
+
+// 2019-06-03 xuren 分成比例，重构表结构
+旧表没有id，没有按照内购和广告分类
+drop table game_finance;
+CREATE TABLE `game_finance` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `game_id` int(11) NOT NULL COMMENT '关联games表id',
+  `finance_type` tinyint(2) NOT NULL DEFAULT '2' COMMENT '1内购 2广告',
+  `contract_body` tinyint(2) DEFAULT NULL COMMENT '签约主体（1主体A，2主体B）',
+  `account_period` tinyint(2) DEFAULT NULL COMMENT '账期（1:N+1，2:N+2，3:N+3）',
+  `divide` float(4,3) DEFAULT NULL COMMENT '游戏分成比例',
+  `slotting_allowance` float(4,3) DEFAULT NULL COMMENT '通道费',
+  `contract_start_date` int(11) DEFAULT NULL COMMENT '合同开始日期',
+  `contract_end_date` int(11) DEFAULT NULL COMMENT '合同结束日期',
+  `a_time` int(11) DEFAULT NULL COMMENT '添加时间',
+  `u_time` int(11) DEFAULT NULL COMMENT '最后更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `type` (`finance_type`,`game_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='分成比例表合同表' ;
+
+// 2019-06-03 xuren 收入统计，增加暗扣金额，和分成金额字段
+新需求需要，删除无用字段
+alter table `income` add column cuted_money decimal(10,2) NOT NULL DEFAULT 0 COMMENT '暗扣金额';
+alter table `income` add column divide_money decimal(10,2) NOT NULL DEFAULT 0 COMMENT '分成金额';
+alter table `income` drop column cut_percent;
+
+// 2019-06-03 xuren 内部广告聚合表，修改百分比精度
+alter table `inner_ad_details_byday` modify click_cut_p decimal(10,4) not null default 0 COMMENT '削减百分比';
+alter table `inner_ad_details_byday` modify cost_cut_p decimal(10,4) not null default 0 COMMENT '削减百分比';
+alter table `inner_ad_details_byday` modify show_cut_p decimal(10,4) not null default 0 COMMENT '削减百分比';
+
+// 2019-06-03 xuren 广告收入原始表，修改广告位名称属性
+历史遗留错误，字段类型不对
+alter table `open_advertise_income` modify code_name varchar(50)  COMMENT '广告位名称';
+
+// 2019-06-03 zhengtian  游戏广告表，新增字段
+alter table open_advertise add column strategy_type tinyint(1) default 0 comment '广告位策略类型（1展示间隔，2设定时间段内展示次数，3无设置）';
+alter table open_advertise add column `interval` int(11) default 0 comment '展示间隔';
+alter table open_advertise add column `frequency` int(11) default 0 comment '展示次数';
+alter table open_advertise add column `period` int(11) default 0 comment '设定时间段';
+
+// 2019-06-03 zhengtian  游戏广告表，修改字段名
+alter table open_advertise change strategy_type frequency_type tinyint(1) DEFAULT 0 COMMENT '广告位频次控制类型（1展示间隔，2设定时间段内展示次数，3无设置）';
+alter table open_advertise change frequency times int(11) DEFAULT 0 COMMENT '展示次数';
+
+// 2019-06-03 zhengtian  APP广告表，新增字段
+alter table app_advertise add column frequency_type tinyint(1) default 0 comment '广告位策略类型（1展示间隔，2设定时间段内展示次数，3无设置）';
+alter table app_advertise add column `interval` int(11) default 0 comment '展示间隔';
+alter table app_advertise add column `times` int(11) default 0 comment '展示次数';
+alter table app_advertise add column `period` int(11) default 0 comment '设定时间段';
+
+// 2019-06-03 zhengtian 广告控制表更新
+DROP TABLE IF EXISTS `ad_ctrl` ;
+CREATE TABLE `ad_ctrl` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` tinyint(1) NOT NULL DEFAULT '0' COMMENT '1：游戏广告控制，2：APP广告控制',
+  `ad_type` tinyint(1) NOT NULL DEFAULT '0' COMMENT '广告类型（1：全屏视频，2：激励视频，3：Banner，4：开屏）',
+  `game_id` int(11) DEFAULT '0' COMMENT '游戏ID，默认0代表所有（type=1有效）',
+  `ad_id` int(11) DEFAULT '0' COMMENT '广告ID，默认0代表（某游戏/APP下）所有',
+  `ctrl_type` tinyint(1) NOT NULL DEFAULT '0' COMMENT '控制类型（1：频次控制，2：开关控制）',
+  `state` tinyint(1) DEFAULT '0' COMMENT '广告开关（1开2关）',
+  `frequency_type` tinyint(1) DEFAULT '0' COMMENT '频次控制策略类型（1：展示间隔，2：设定时间段内展示次数）（ctrl_type=1有效）',
+  `interval` int(11) DEFAULT '0' COMMENT '展示间隔（秒）',
+  `times` int(11) DEFAULT '0' COMMENT '展示次数',
+  `period` int(11) DEFAULT '0' COMMENT '设定时间段（小时）',
+  `user_type` tinyint(1) DEFAULT '0' COMMENT '适用用户（0：默认所有，1：新用户，2：老用户）',
+  `time_ctrl_type` tinyint(1) DEFAULT '0' COMMENT '时间控制类型（1：永久有效，2：设定起止时间有效）',
+  `from` int(11) DEFAULT NULL COMMENT '开始时间',
+  `to` int(11) DEFAULT NULL COMMENT '结束时间',
+  `admin` int(11) DEFAULT NULL COMMENT '操作管理员ID',
+  `a_time` int(11) DEFAULT NULL COMMENT '添加时间',
+  `u_time` int(11) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='广告云控';
+
+
+//以上均已执行 测试环境  6.4
+
+//2019-06-05 xuren 游戏画风表和数据初始化
+CREATE TABLE `game_paint_style` (
+     `id` int(11) NOT NULL AUTO_INCREMENT,
+     `style_id` int(11) COMMENT '画风id',
+     `name_cn` varchar(50) COMMENT 'CN画风名称',
+     PRIMARY KEY (`id`)
+   ) ENGINE=innodb DEFAULT CHARSET=utf8 COMMENT '游戏画风表';
+insert into `game_paint_style`(style_id,name_cn) values(1,'写实'),(2,'卡通'),(3,'像素'),(4,'低多边形'),(5,'线条'),(6,'简约'),(7,'方块'),(8,'水墨'),(9,'剪影'),(10,'和风'),(11,'美式'),(12,'手绘'),(13,'黑白'),(14,'中国风');
+
+
+// 2019-06-05 xuren 游戏标签详情表 及其初始化数据
+CREATE TABLE `tags_detail` (
+     `id` int(11) NOT NULL AUTO_INCREMENT,
+     `tag_id` int(11) COMMENT '标签id',
+     `tag_name` varchar(50) COMMENT '标签名称',
+     `type` tinyint DEFAULT 0 COMMENT '0游戏标签，1自定标签',
+     `ref_num` int(11) DEFAULT 0 COMMENT '标签引用数量',
+     `a_time` int(11) COMMENT '添加时间',
+     `u_time` int(11) COMMENT '更新时间',
+     PRIMARY KEY (`id`)
+   ) ENGINE=innodb DEFAULT CHARSET=utf8 COMMENT '游戏标签详情表';
+insert into `tags_detail`(tag_id,tag_name,type) values(1,'赛车',0),(2,'科幻星际',0),(3,'探险',0),(4,'音乐',0),(5,'体育',0),(6,'射击',0),(7,'生存',0),(8,'益智解谜',0),(9,'跑酷',0),(10,'经典',0),(11,'弹射',0),(12,'竞速',0),(13,'节奏',0),(14,'冒险',0),(15,'竞技对战',0),(16,'棋牌',0),(17,'闯关',0),(18,'动作',0),(19,'模拟',0),(20,'策略',0),(21,'经营',0),(22,'环装',0),(23,'休闲',0),(24,'女性',0),(25,'可爱',0),(26,'捕鱼',0),(27,'养成',0),(28,'塔防',0),(29,'Q萌',0),(30,'放置',0),(31,'桌游',0),(32,'男生',1),(33,'女生',1),(34,'休闲',1),(35,'中度',1),(36,'重度',1);
+
+// 2019-06-05 xuren 游戏标签表
+CREATE TABLE `game_tags` (
+     `id` int(11) NOT NULL AUTO_INCREMENT,
+     `tag_id` int(11) COMMENT '标签id',
+     `game_id` int(11) COMMENT '游戏id',
+     `a_time` int(11) COMMENT '添加时间',
+     PRIMARY KEY (`id`),
+     index (tag_id),
+     index (game_id)
+   ) ENGINE=innodb DEFAULT CHARSET=utf8 COMMENT '游戏标签表';
+
+
+   // 2019-06-05 xuren 游戏表添加标签字段
+   alter table games add column paint_style tinyint default 0 comment '画风0代表未选择';
+	
+ALTER TABLE `menu` ADD COLUMN `area_code`  tinyint(1) NOT NULL DEFAULT 1 COMMENT '国内外区域标识（1：国内；2：国外）';	
+
+//以上均已执行 测试环境  6.5 
+
+
+delete from `games_category`;
+insert into `games_category` values(1,'','策略经营',0),(2,'','飞行射击',0),(3,'','赛车体育',0),(4,'','角色扮演',0),(5,'','棋牌桌游',0),(6,'','休闲益智',0),(7,'','跑酷闯关',0);
+
+ALTER TABLE popularize ADD COLUMN `img_url`          varchar(255) DEFAULT NULL COMMENT '图片路径';
+ALTER TABLE popularize ADD COLUMN `background_color` varchar(255) DEFAULT NULL COMMENT '背景色';
+ALTER TABLE popularize ADD COLUMN `game_link`        varchar(255) DEFAULT NULL COMMENT '游戏链接';
+ALTER TABLE popularize ADD COLUMN `is_inside`        tinyint(1)   DEFAULT NULL COMMENT '1内部游戏2外部游戏';
+
+
+//6-6  才上，所有环境均以执行
+
+// 2019-06-10 zhengtian 后台广告云控菜单
+
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (162, 3, '开发者广告控制', 'control', 'index', NULL, '', 1, 0, 1);
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (163, 141, 'APP广告控制', 'control', 'index', NULL, '', 1, 0, 1);
+
+
+// 2019-06-13 xuren 后台标签，分类，画风设置
+insert into menu(`id`,pid,name,dir_name,icon,is_show,sort) values(164,0,'分类标签配置','type_tag_setting','fa-gear',1,150);
+insert into menu(`id`,pid,name,ctrl,ac,is_show,sort) values(165,164,'分类配置','typeTagSetting','typeIndex',1,0);
+insert into menu(`id`,pid,name,ctrl,ac,is_show,sort) values(166,164,'画风配置','typeTagSetting','paintStyleIndex',1,0);
+insert into menu(`id`,pid,name,ctrl,ac,is_show,sort) values(167,164,'标签配置','typeTagSetting','tagIndex',1,0);
+alter table game_paint_style add column `name_en` varchar(50) COMMENT 'en画风名称';
+alter table tags_detail add column `name_en` varchar(50) COMMENT 'en标签名称';
+
+// 2019-06-13 zhengtian APP UI 配置
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (168, 6, 'APP UI配置', 'ui', 'index', NULL, 'fa-android', 1, 0, 1);
+
+// 2019-06-13 zhengtian APP UI 配置表
+CREATE TABLE `app_ui_config` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `is_show` tinyint(1) DEFAULT NULL COMMENT '1是2否',
+  `pid` int(11) DEFAULT NULL COMMENT '父级ID',
+  `desc` varchar(255) DEFAULT NULL COMMENT '描述',
+  `title` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL COMMENT 'APP前端展示描述',
+  `keys` varchar(255) DEFAULT NULL COMMENT '数组KEY',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='APP功能展示控制';
+
+// 2019-06-14 xiahongbo     menu.APP UI     
+INSERT INTO `menu` (`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES ('1165', '1006', 'APP UI配置 ', 'ui', 'index', NULL, 'fa-android', '1', '0', '2');
+
+// 2019-06-14 xuren 海外标签菜单
+insert into menu(`id`,pid,name,dir_name,icon,is_show,sort,`area_code`) values(1166,0,'分类标签配置','type_tag_setting','fa-gear',1,150,2);
+insert into menu(`id`,pid,name,ctrl,ac,is_show,sort,`area_code`) values(1167,1166,'分类配置','typeTagSetting','typeIndex',1,0,2);
+insert into menu(`id`,pid,name,ctrl,ac,is_show,sort,`area_code`) values(1168,1166,'画风配置','typeTagSetting','paintStyleIndex',1,0,2);
+insert into menu(`id`,pid,name,ctrl,ac,is_show,sort,`area_code`) values(1169,1166,'标签配置','typeTagSetting','tagIndex',1,0,2);
+
+
+
+//以上  06-14号上线执行，国内已同步
+
+
+// 2019-06-12 xuren 统计 ，已不用
+alter table `played_game_user` add column `src` tinyint NOT NULL DEFAULT 0;
+
+// 2019-06-17 zhengtian 海外广告组新表
+CREATE TABLE `foreign_ad_map` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` tinyint(1) DEFAULT '0' COMMENT '1：映射游戏广告表，2：映射APP广告表',
+  `inner_id` int(11) NOT NULL DEFAULT '0' COMMENT '平台广告位ID',
+  `os` tinyint(1) DEFAULT '0' COMMENT '1：ios，2：android',
+  `channel_id` int(11) DEFAULT '0' COMMENT '渠道id',
+  `group_id` int(11) DEFAULT '0' COMMENT '广告配置组id',
+  `a_time` int(11) DEFAULT NULL COMMENT '添加时间',
+  `u_time` int(11) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='海外广告映射表';
+
+CREATE TABLE `foreign_ad_group` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT NULL COMMENT '组名',
+  `ad_type` tinyint(1) DEFAULT '0' COMMENT '广告类型（1：插屏，2：激励视频，3：banner）',
+  `a_time` int(11) DEFAULT NULL COMMENT '添加时间',
+  `u_time` int(11) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='海外广告组';
+
+CREATE TABLE `foreign_ad_origin` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `group_id` int(11) DEFAULT '0' COMMENT '从属广告组id',
+  `advertiser` tinyint(2) DEFAULT '0' COMMENT '广告提供商（1：Google，2：Facebook）',
+  `outer_id` varchar(255) DEFAULT NULL COMMENT '广告源id',
+  `sort` int(11) DEFAULT '0' COMMENT '组内排序（降序）',
+  `status` tinyint(1) DEFAULT '0' COMMENT '开关（1开，2关）',
+  `a_time` int(11) DEFAULT NULL COMMENT '添加时间',
+  `u_time` int(11) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+// 2019-06-19 xiahongbo 国内+海外：任务配置表+玩家任务明细表加排序字段：
+ALTER TABLE `task_config`  ADD COLUMN `sort` int(11) NULL COMMENT '排序（数字越小越靠前；from：1）';
+ALTER TABLE `task_user`  ADD COLUMN `sort` int(11) NULL COMMENT '排序（数字越小越靠前；from：1）';
+// 2019-06-19 xuren 只在国内执行
+ALTER TABLE `user` ADD COLUMN `facebook_uid` VARCHAR(100) DEFAULT NULL COMMENT '脸书uid';
+ALTER TABLE `user` ADD COLUMN `google_uid` VARCHAR(100) DEFAULT NULL COMMENT '谷歌uid';
+
+// 2019-06-19 zhengtian 功能数据统计表
+CREATE TABLE `cnt_action` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `category` tinyint(1) DEFAULT NULL COMMENT '1：H5，2：pc，3：app',
+  `a_time` int(11) DEFAULT NULL,
+  `uid` int(11) DEFAULT NULL COMMENT '用户ID',
+  `type` int(11) DEFAULT NULL COMMENT '1：邀请落地页访问，2：邀请落地页下载，3：邀请好友页访问',
+  `memo` varchar(255) DEFAULT NULL COMMENT '扩展字段',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='功能数据统计';
+
+
+// 6.22 by wdy 以上所有环境 均已执行
+
+
+// 2019-06-12 zhengtian 海外广告
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (1163, 0, '海外广告', NULL, NULL, 'ad_en', 'fa-android', 1, 275, 2);
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (1164, 1163, '海外广告列表', 'group', 'index', NULL, '', 1, 0, 2);
+
+
+// 2019-06-19 zhengtian 菜单-- APP功能数据统计
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (169, 0, 'APP功能数据统计', '', '', 'app_func_data', 'fa-android', 1, 80, 1);
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (170, 169, 'APP分享数据', 'share', 'index', '', '', 1, 0, 1);
+
+// 2019-06-17 zhengtian 海外广告菜单
+update menu set ctrl = 'foreignAd' where id in (1021,1022,1023,1158);
+update menu set ctrl = 'foreignAppAd' where id = 1035;
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (1170, 1003, '开发者广告控制', 'control', 'index', NULL, '', 1, 0, 2);
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (1171, 1141, 'APP广告控制', 'control', 'index', NULL, '', 1, 0, 2);
+
+// 2019-06-24 zhengtian IP黑名单，国内dev已执行
+CREATE TABLE `ip_block` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ip` varchar(255) DEFAULT NULL COMMENT 'IP地址',
+  `type` tinyint(1) DEFAULT '0' COMMENT '封停原因（1：频繁访问）',
+  `status` tinyint(1) DEFAULT '0' COMMENT '状态（1：封停中，2：已解封）',
+  `expired_time` int(11) DEFAULT NULL COMMENT '失效时间',
+  `mome` varchar(255) DEFAULT NULL COMMENT '备注',
+  `a_time` int(11) DEFAULT NULL COMMENT '添加时间',
+  `u_time` int(11) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COMMENT='IP黑名单';
+
+
+// 2019-06-20 zhengtian 
+*****国内dev环境数据库时区更改为东八区，正式环境可能也需要改
+
+// 2019-06-20 xuren lucky相关，可后台配置app游戏显示
+ALTER TABLE `games` ADD COLUMN `hide` TINYINT DEFAULT 0 COMMENT 'xyxapp getlist不显示 1隐藏 0显示'; 
+
+
+以上，6.26 所有 环境 均已执行  ======================================
+
+
+// 2019-06-20 xiahonogbo 趣味刮一刮项目相关，所有banner展示及跳转位置均做成可配置（国内，外 测试环境已执行）;
+ALTER TABLE `banner` 
+ADD COLUMN `banner_location` int(11) NOT NULL DEFAULT 0 COMMENT 'banner位置';
+ALTER TABLE `banner` 
+ADD COLUMN `banner_skip` int(11) NULL COMMENT '跳转类型';
+
+CREATE TABLE `banner_location` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT '0' COMMENT '名称',
+  `is_show` tinyint(1) DEFAULT NULL COMMENT '是否展示（1：展示；2：不展示）',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='Banner位置';
+// banner_location数据初始化
+INSERT INTO `banner_location`(`id`, `name`, `is_show`) VALUES (1, '游戏页面顶部轮播', 1);
+INSERT INTO `banner_location`(`id`, `name`, `is_show`) VALUES (2, '任务页面顶部轮播', 1);
+INSERT INTO `banner_location`(`id`, `name`, `is_show`) VALUES (3, '任务页面中部滑动', 1);
+INSERT INTO `banner_location`(`id`, `name`, `is_show`) VALUES (4, '我的页面中部轮播', 1);
+
+CREATE TABLE `banner_skip` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT '0' COMMENT '名称',
+  `is_show` tinyint(1) DEFAULT NULL COMMENT '是否展示（1：展示；2：不展示）',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='跳转类别';
+// banner_skip数据初始化
+INSERT INTO `banner_skip`(`id`, `name`, `is_show`) VALUES (1, '站内游戏', 1);
+INSERT INTO `banner_skip`(`id`, `name`, `is_show`) VALUES (2, '邀请好友', 1);
+INSERT INTO `banner_skip`(`id`, `name`, `is_show`) VALUES (3, '任务页面', 1);
+INSERT INTO `banner_skip`(`id`, `name`, `is_show`) VALUES (4, '每日福利', 1);
+INSERT INTO `banner_skip`(`id`, `name`, `is_show`) VALUES (5, '幸运大抽奖', 1);
+INSERT INTO `banner_skip`(`id`, `name`, `is_show`) VALUES (6, '开心刮一刮', 1);
+INSERT INTO `banner_skip`(`id`, `name`, `is_show`) VALUES (7, '好友加成', 1);
+INSERT INTO `banner_skip`(`id`, `name`, `is_show`) VALUES (8, '签到有奖', 1);
+INSERT INTO `banner_skip`(`id`, `name`, `is_show`) VALUES (9, '奖金排行榜', 1);
+INSERT INTO `banner_skip`(`id`, `name`, `is_show`) VALUES (10, '开心抽一抽', 1);
+INSERT INTO `banner_skip`(`id`, `name`, `is_show`) VALUES (11, '铲铲队', 1);
+
+// 2019-06-21 xiahonogbo 国内+海外:趣味刮一刮项目相关，管理后台单独页面看lucky的金币数据 + 调整任务顺序（测试环境未执行）;
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (175, 6, '任务顺序调整', 'changeNum', 'index', NULL, '', 1, 0, 1);
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (176, 169, 'Lucky数据统计', NULL, NULL, 'lucky', 'fa-life-ring', 1, 0, 1);
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (177, 176, 'Lucky金币汇总', 'luckyCollect', 'index', NULL, 'fa-paw', 1, 1, 1);
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (178, 176, 'Lucky金币详情', 'luckyGoldCoin', 'index', NULL, 'fa-android', 1, 2, 1);
+
+// 2019-06-21 xiahonogbo 国内+海外:调整任务顺序测试环境未执行）;
+INSERT INTO `menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (1172, 1006, '任务顺序调整', 'changeNum', 'index', NULL, '', 1, 0, 2);
+
+// 2019-06-21 xiahonogbo 国内：趣味刮一刮卡牌刷新展示，【测试环境未执行】;
+CREATE TABLE `lucky_times_config` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `click_one` int(11) NOT NULL COMMENT '时间节点1（0点）',
+  `click_two` int(11) NOT NULL COMMENT '时间节点2（11点）',
+  `click_three` int(11) NOT NULL COMMENT '时间节点3（18点）',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='刮一刮配置时间显示节点';
+INSERT INTO `lucky_times_config`(`id`, `click_one`, `click_two`, `click_three`) VALUES (1, 0, 11, 18);
+
+// 2019-06-21 xiahonogbo 国内：新增趣味刮一刮任务入口，【测试环境未执行】;
+INSERT INTO `task_config`(`id`, `title`, `goldcoin`, `point`, `type`, `step_num`, `type_sub`, `is_off`, `game_id`, `content`, `sort`) VALUES (14, '免费刮卡拿奖金', 0, 0, 1, 0, 1, 0, 0, '轻松刮一刮，奖金等你拿', 7);
+
+
+以上 国内环境均已执行   6.26   ===========================================================
+=====================================================================
+
+// 2019-06-29 给foreign_ad_origin 表加注释
+alter table foreign_ad_origin comment '海外广告源';
+
+
+// 2019-06-29 xuren 国内: 广点通原始数据表
+CREATE TABLE `tencent_ad_income` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ad_slot_id` varchar(50) DEFAULT NULL COMMENT '代码位ID，平台创建代码位',
+  `click` int(11) DEFAULT NULL COMMENT '点击量',
+  `click_rate` decimal(10,4) DEFAULT NULL COMMENT '点击率',
+  `code_name` varchar(50) DEFAULT NULL COMMENT '广告位名称',
+  `cost` decimal(10,2) DEFAULT NULL COMMENT '预估总收入',
+  `ecpm` decimal(10,2) DEFAULT NULL COMMENT '千次展现收入',
+  `show` int(11) DEFAULT NULL COMMENT '展现量',
+  `stat_datetime` date DEFAULT NULL COMMENT '本条数据的时间维度',
+  `a_time` int(11) DEFAULT NULL COMMENT '添加时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `account_index` (`ad_slot_id`,`stat_datetime`)
+) ENGINE=MyISAM AUTO_INCREMENT=771 DEFAULT CHARSET=utf8 COMMENT='广点通广告收入';
+
+// 2019-07-03 xiahongbo 国内：任务表更新（新增任务+原有任务文本更新）
+UPDATE `task_config` SET `title` = '玩游戏2分钟', `goldcoin` = 1000, `point` = 0, `type` = 2, `step_num` = 2, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '玩游戏超过2分钟，领取金币奖励', `sort` = 5 WHERE `id` = 1;
+UPDATE `task_config` SET `title` = '查看我的钱包', `goldcoin` = 100, `point` = 0, `type` = 2, `step_num` = 1, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '进入钱包查看收益', `sort` = 3 WHERE `id` = 2;
+UPDATE `task_config` SET `title` = '首次提现成功', `goldcoin` = 3000, `point` = 0, `type` = 2, `step_num` = 1, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '成功提现1次，立刻奖励3000金币', `sort` = 6 WHERE `id` = 3;
+UPDATE `task_config` SET `title` = '关注第一个小伙伴', `goldcoin` = 100, `point` = 0, `type` = 2, `step_num` = 1, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '关注你的第一个小伙伴，一起玩吧', `sort` = 4 WHERE `id` = 4;
+UPDATE `task_config` SET `title` = '首次注册成功', `goldcoin` = 2800, `point` = 0, `type` = 2, `step_num` = 1, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '成功完成注册', `sort` = 7 WHERE `id` = 5;
+UPDATE `task_config` SET `title` = '幸运大抽奖', `goldcoin` = 0, `point` = 0, `type` = 1, `step_num` = 100, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '每天参与抽奖 赚取更多金币', `sort` = 12 WHERE `id` = 6;
+UPDATE `task_config` SET `title` = '看视频，开宝箱', `goldcoin` = 0, `point` = 0, `type` = 1, `step_num` = 100, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '看视频开宝箱赚金币', `sort` = 10 WHERE `id` = 7;
+UPDATE `task_config` SET `title` = '晒晒收入', `goldcoin` = 100, `point` = 0, `type` = 1, `step_num` = 1, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '轻松领金币', `sort` = 6 WHERE `id` = 8;
+UPDATE `task_config` SET `title` = '分享给好友，提升收益', `goldcoin` = 100, `point` = 0, `type` = 1, `step_num` = 1, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '每天获取好友金币的5%', `sort` = 5 WHERE `id` = 9;
+UPDATE `task_config` SET `title` = '玩游戏，领金币', `goldcoin` = 20000, `point` = 0, `type` = 1, `step_num` = 1, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '玩得越久领的越多', `sort` = 9 WHERE `id` = 10;
+UPDATE `task_config` SET `title` = '游戏达到20分钟', `goldcoin` = 1000, `point` = 0, `type` = 1, `step_num` = 20, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '边玩边赚，时间越久赚得越多', `sort` = 4 WHERE `id` = 11;
+UPDATE `task_config` SET `title` = '免费刮卡拿奖金', `goldcoin` = 10000, `point` = 0, `type` = 1, `step_num` = 1, `type_sub` = 1, `is_off` = 0, `game_id` = 0, `content` = '轻松刮一刮，奖金等你拿', `sort` = 13 WHERE `id` = 14;
+
+INSERT INTO `task_config`(`id`, `title`, `goldcoin`, `point`, `type`, `step_num`, `type_sub`, `is_off`, `game_id`, `content`, `sort`) VALUES (15, '分享游戏，拿金币！', 100, 0, 2, 1, 1, 0, 0, '分享游戏，拿金币！', 2);
+INSERT INTO `task_config`(`id`, `title`, `goldcoin`, `point`, `type`, `step_num`, `type_sub`, `is_off`, `game_id`, `content`, `sort`) VALUES (16, '连续三天分享游戏', 300, 0, 2, 3, 1, 0, 0, '分享任意游戏给微信或QQ好友', 1);
+INSERT INTO `task_config`(`id`, `title`, `goldcoin`, `point`, `type`, `step_num`, `type_sub`, `is_off`, `game_id`, `content`, `sort`) VALUES (18, '玩5款不同的游戏', 200, 0, 1, 5, 1, 0, 0, '每天玩5款不同的游戏', 8);
+INSERT INTO `task_config`(`id`, `title`, `goldcoin`, `point`, `type`, `step_num`, `type_sub`, `is_off`, `game_id`, `content`, `sort`) VALUES (19, '玩欢乐球球5分钟', 100, 0, 1, 1, 1, 0, 10186, '精品新游等你体验', 7);
+INSERT INTO `task_config`(`id`, `title`, `goldcoin`, `point`, `type`, `step_num`, `type_sub`, `is_off`, `game_id`, `content`, `sort`) VALUES (20, '游戏福利红包', 194, 0, 1, 1, 1, 0, 0, '完成游戏时长，即可拆红包', 11);
+INSERT INTO `task_config`(`id`, `title`, `goldcoin`, `point`, `type`, `step_num`, `type_sub`, `is_off`, `game_id`, `content`, `sort`) VALUES (21, '开心抽一抽', 2000, 0, 1, 1, 1, 0, 0, '玩游戏满5分钟即可抽奖！', 2);
+INSERT INTO `task_config`(`id`, `title`, `goldcoin`, `point`, `type`, `step_num`, `type_sub`, `is_off`, `game_id`, `content`, `sort`) VALUES (22, '签到赚金币', 2500, 0, 1, 1, 1, 0, 0, '24小时签到，金币轻松到账', 1);
+INSERT INTO `task_config`(`id`, `title`, `goldcoin`, `point`, `type`, `step_num`, `type_sub`, `is_off`, `game_id`, `content`, `sort`) VALUES (23, '邀请好友，拿金币', 300000, 0, 1, 1, 1, 0, 0, '拉新人赚奖金', 3);
+
+// 2019-07-03 xiahongbo 国内：banner管理新增版本号字段
+ALTER TABLE `banner` 
+ADD COLUMN `app_version` varchar(255) NULL COMMENT '当前banner适用APP版本号';
+
+// 2019-07-03 xiahongbo 国内：完善用户资料
+CREATE TABLE `perfect_presonal_message` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uid` varchar(50) DEFAULT NULL COMMENT '用户id',
+  `message_type` varchar(50) DEFAULT NULL COMMENT '更新信息类别（1、设置头像 2、设置昵称 3、设置性别）',
+  `status` tinyint(1) DEFAULT NULL COMMENT '状态（1、以设置 2、未设置）',
+  `a_time` int(11) DEFAULT NULL COMMENT '创建时间',
+  `u_time` int(11) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='完善个人资料日志表';
+
+// 2019-7-3 王东岩 金币排行榜
+
+CREATE TABLE `day_gold_user_rank` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `uid` int(11) DEFAULT NULL COMMENT '用户ID',
+  `gold_num` int(11) DEFAULT NULL COMMENT '今日总金币数',
+  `reward_gold_num` int(11) DEFAULT '0' COMMENT '奖励金币数',
+  `a_time` int(11) DEFAULT '0',
+  `day` varchar(8) DEFAULT NULL COMMENT '年月日',
+  PRIMARY KEY (`id`)
+) ENGINE=innodb AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='每日金币排行榜';
+
+ALTER TABLE `goldcoin_log` ADD INDEX index_num ( `num` ) ;
+ALTER TABLE `user` ADD `status` tinyint(1) DEFAULT '0' COMMENT '0,正常1,30天失效2,删除';
+
+以上 国内环境均已执行   7.3   ===========================================================
+
+// 2019-07-04 zhengtian 给user_black和ip_block加索引
+
+alter table user_black add unique uid_st(uid,status);
+alter table ip_block add unique ip_st(ip,status);
+
+// 2019-07-05 zhengtian h5游戏中心
+
+INSERT INTO `instantplay`.`menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (179, 0, 'H5游戏中心', NULL, NULL, 'h5_gc', 'fa fa-gamepad', 1, 70, 1);
+INSERT INTO `instantplay`.`menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (180, 179, '渠道配置', 'channel', 'index', NULL, '', 1, 0, 1);
+INSERT INTO `instantplay`.`menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (181, 179, '板块配置', 'section', 'index', NULL, '', 1, 0, 1);
+INSERT INTO `instantplay`.`menu`(`id`, `pid`, `name`, `ctrl`, `ac`, `dir_name`, `icon`, `is_show`, `sort`, `area_code`) VALUES (182, 179, 'banner配置', 'banner', 'index', NULL, '', 1, 0, 1);
+
+CREATE TABLE `h5_gc_channels` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT NULL COMMENT '渠道名',
+  `f_key` varchar(255) DEFAULT NULL COMMENT 'F值',
+  `temp_type` tinyint(1) NOT NULL DEFAULT '0' COMMENT '模板类型（1：默认配置，2：自定配置）',
+  `state` tinyint(1) NOT NULL DEFAULT '0' COMMENT '状态（1：开启，2：关闭）',
+  `user_name` varchar(255) DEFAULT NULL COMMENT '用户名称',
+  `user_type` tinyint(1) DEFAULT '0' COMMENT '用户类型（1：公司，2：个人）',
+  `contact` varchar(255) DEFAULT NULL COMMENT '联系人',
+  `addr` varchar(255) DEFAULT NULL COMMENT '联系地址',
+  `phone` int(11) DEFAULT NULL COMMENT '联系电话',
+  `email` varchar(255) DEFAULT NULL COMMENT '联系邮箱',
+  `a_time` int(11) DEFAULT NULL COMMENT '添加时间',
+  `u_time` int(11) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='h5游戏中心---渠道表';
+
+CREATE TABLE `h5_gc_tabs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ch_id` int(11) NOT NULL COMMENT '所属渠道id',
+  `name` varchar(255) DEFAULT NULL COMMENT '名称',
+  `sort` int(11) DEFAULT '0' COMMENT '排序（倒序）',
+  `a_time` int(11) DEFAULT NULL COMMENT '添加时间',
+  `u_time` int(11) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='h5游戏中心--选项卡配置';
+
+CREATE TABLE `h5_gc_sections` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ch_id` int(11) NOT NULL COMMENT '所属渠道',
+  `name` varchar(255) DEFAULT NULL COMMENT '板块名称',
+  `tab` int(11) DEFAULT NULL COMMENT '选项卡（tabs表id）',
+  `type` tinyint(2) NOT NULL COMMENT '板块位置',
+  `games` varchar(255) DEFAULT NULL COMMENT '配置游戏（json存储：game_id, sort, img)',
+  `a_time` int(11) DEFAULT NULL COMMENT '添加时间',
+  `u_time` int(11) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='h5游戏中心--板块配置';
+
+CREATE TABLE `h5_gc_banners` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ch_id` int(11) NOT NULL COMMENT '所属渠道',
+  `type` tinyint(2) NOT NULL DEFAULT '0' COMMENT '位置',
+  `jump_type` tinyint(1) NOT NULL DEFAULT '0' COMMENT '跳转类型（1：游戏）',
+  `game_id` int(11) DEFAULT NULL COMMENT '跳转游戏id',
+  `img` varchar(255) DEFAULT NULL COMMENT '展示图',
+  `sort` int(11) DEFAULT NULL COMMENT '排序（倒序）',
+  `a_time` int(11) DEFAULT NULL COMMENT '添加时间',
+  `u_time` int(11) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='h5游戏中心--banner配置';

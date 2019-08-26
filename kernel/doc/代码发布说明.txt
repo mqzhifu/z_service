@@ -1,0 +1,18 @@
+
+测试服务器10.10.7.60上
+cd /kpool/apps/instantplay
+./publish.py <src filename or dirname> <dest dirname>
+
+src和dest都是相对于/kpool/apps/instantplay的相对路径
+
+例子：
+
+./publish.py app/open/ctrl/index.ctrl.php app/open/ctrl/  #把index.ctrl.php同步到app/open/ctrl/目录
+./publish.py app/open/test app/open/  #把app/open/test同步到app/open/目录
+
+除非要同步代码很多，尽量少用目录同步
+
+==============================
+
+./diffserver.py <filename>
+用这个比对测试服和正式服的代码差异。发布前，尽量都diff下线上代码

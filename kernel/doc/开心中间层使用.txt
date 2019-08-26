@@ -1,0 +1,34 @@
+开心数据中间层主要功能有：分库分表，php连接池，使用前，需要使用建表脚本创建数据表。
+
+建表脚本所在目录：/kpool/sys
+
+建表脚本 /kpool/sys/newtable.php
+newtable.php的作用是往数据库配置表添加记录，供中间层定位表的物理位置使用。如果建表失败，可用 /kpool/sys/deletetable.php 脚本删除配置数据
+建表语句中表名约定：多表以 _0 后缀结尾，单表不需要
+
+Usage: newtable.php <kind> <table_num> <id_field> <sid-sid> <db_name> <sqlfile>
+kind: 表名
+table_num：表数量
+id_field：用来作为分表依据的字段名
+sid-sid：库id，由系统部分配。如果是多表并且建到多个库，库id用"-"分割
+db_name：库名
+sqlfile：内容为建表语句的文本文件路径
+
+例子:
+/usr/local/php/bin/php newtable.php s_lucky_admin_user 1 id 1 kxgame 01.sql
+第一个1代表表的数量
+id代表分表字段
+第二个1代表库id
+
+建完reload下 /usr/local/bin/php reloadServer.php
+
+建完表，php中就可以访问数据库：
+$this->_db = \DKXI_Database::factory('apps'); //获取数据库访问句柄
+$this->_db->execute($hintId, '增删改sql语句'); //hintId为分表字段的值，如果是单表填0
+$this->_db->query($hintId, '查询sql语句');
+
+如果是多表，并且需要一个唯一数字id，比如用户表的用户id，这时通常不能用mysql自带的自增序列字段来生成唯一id。中间层也提供了idgenerator服务来生成一个唯一id，用法：
+手动连接配置库（连接参数查看 /kpool/sys/global.php），在 idgenerator 表增加一条id记录，作为分表的字段依据
+php中获取唯一id：
+$idMan = \DKXI_Id::factory('frodo');
+$uid = $idMan->newId('lucky_uid'); //其中lucky_uid即为在idgenerator表增加的id名称
