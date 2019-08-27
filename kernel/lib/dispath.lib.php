@@ -5,17 +5,22 @@ class DispathLib{
     public $reflection = 1;//使用反射路由
     public $ctrl = null;
     public $ac = null;
-
+    public $app = null;
 	function __construct($frame = null){
 		$this->clientFrame = $frame;
 	}
 	function authDispath($ctrl = '',$ac= ''){
 
-//		$app = AppModel::db()->getRow("en_title = '" .APP_NAME ."'");
-//		if(!$app)
-//			stop('应用不存在');
-//		if(!$app['status'])
-//			stop('应用未开放');
+	    if(!arrKeyIssetAndExist($GLOBALS[KERNEL_NAME]['app'],APP_NAME)){
+            return out_pc(9207,null,KERNEL_NAME);
+        }
+
+        $app = $GLOBALS[KERNEL_NAME]['app'][APP_NAME];
+        if($app['status'] != 'open'){
+            return out_pc(9208,null,KERNEL_NAME);
+        }
+
+        $this->app = $app;
 
 		if(RUN_ENV == 'WEB'){
             $ctrl = _g(PARA_CTRL);
@@ -26,7 +31,7 @@ class DispathLib{
             if(defined('DEF_CTRL'))
                 $ctrl = DEF_CTRL;
             else
-                return out_pc(9200,"ctrl参数为空",KERNEL_NAME);
+                return out_pc(9200,null,KERNEL_NAME);
         }
 
 		
@@ -34,7 +39,7 @@ class DispathLib{
             if(defined('DEF_AC'))
                 $ac = DEF_AC;
             else
-                return out_pc(9201,'ac参数为空',KERNEL_NAME);
+                return out_pc(9201,null,KERNEL_NAME);
         }
 
 
@@ -64,8 +69,10 @@ class DispathLib{
         }
 
         //检查IP是否在黑名单中
-        FilterLib::checkIPRequest();
-
+        $checkIp = FilterLib::checkIPRequest();
+	    if(!$checkIp){
+	        exit("IP限制");
+        }
 
         $ac = $this->ac;
         $ctrl = $this->ctrl .C_CLASS;
@@ -117,11 +124,12 @@ class DispathLib{
                 ExceptionFrameLib::throwCatch("9205-sign签名为空",'dispath');
             }
 
-            $this->logRequest($para);
-            $checkSign = TokenLib::checkSign($para);
+            $checkSign = TokenLib::checkSign($para , $sign,$this->app['apiSecret']);
             if(!$checkSign){
                 ExceptionFrameLib::throwCatch("9206-签名错误",'dispath');
             }
+
+            $this->logRequest($para);
 
             $class = new $ctrl($this->clientFrame,$this->ctrl,$this->ac);
 

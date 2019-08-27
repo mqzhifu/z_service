@@ -158,34 +158,28 @@ class FilterLib {
 
 
     static function checkIPRequest($ip = null) {
+	    if(!$GLOBALS[KERNEL_NAME]['main']['ipCntLimit']){
+            return ture;
+        }
+
 	    if(!$ip){
             $ip = get_client_ip();
         }
 
-        $key = RedisPHPLib::getAppKeyById($GLOBALS[KERNEL_NAME]['rediskey']['black_ip']['key'], $ip);
+        $key = RedisPHPLib::getAppKeyById($GLOBALS[KERNEL_NAME]['rediskey']['black_ip']['key'], $ip , KERNEL_NAME);
 
-        if (IpBlockModel::isBlocked($ip)) {
+        $ipCnt = RedisPHPLib::get($key);
+        if($ipCnt){
+            if($ipCnt >= $GLOBALS[KERNEL_NAME]['main']['ipCntLimit']){
+                return false;
+            }
+            RedisPHPLib::getServerConnFD()->incr($key);
             return true;
         }
 
+        RedisPHPLib::set($key,1,5 * 60);
 
-        $val = uniqid();
-        $score = microtime_float();
-        RedisPHPLib::getServerConnFD()->zAdd($key, $score, $val);
-        RedisPHPLib::getServerConnFD()->expire($key, $GLOBALS['rediskey']['ip_access_set']['expire']);
-
-        $set = RedisPHPLib::getServerConnFD()->zRangeByScore($key, $score-10, $score);
-        $cnt = count($set);
-
-        LogLib::appWriteFileHash("ip access: $ip  count10s: $cnt");
-
-        if ($cnt >= 500) {
-            IpBlockLogModel::addLog($ip,IpBlockLogModel::$_block,0);
-            IpBlockModel::Block($ip, IpBlockModel::$_type_access_too_frequent);
-            return true;
-        }
-
-        return false;
+        return true;
     }
 	
 }

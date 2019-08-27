@@ -7,7 +7,7 @@ define('DEF_REDIS_CONN', 'sanguo');
 define("DEBUG",1);
 
 //当前环境 local 本地 开发 dev  线上
-define("ENV","release");
+define("ENV","local");
 //国家
 define("COUNTRY",'cn');
 

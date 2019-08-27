@@ -1,7 +1,7 @@
 <?php
 class TokenLib {
     static function create($uid){
-        $secret = $GLOBALS['main']['tokenSecret'];
+        $secret = $GLOBALS[APP_NAME]['main']['tokenSecret'];
 
         return self::crypt($uid, $secret, 'encode');
     }
@@ -94,23 +94,25 @@ class TokenLib {
         return array('data'=>$data,'expire'=>$expire);
     }
 
-    static function encodeSign($data,$key){
+    static function encodeSign($data = null,$key){
         $str = "";
-        foreach ($data as $k=>$v) {
-            if(!$v){
-                continue;
-            }
+        if($data){
+            foreach ($data as $k=>$v) {
+                if(!$v){
+                    continue;
+                }
 
-            $str .= $k.$v;
+                $str .= $k.$v;
+            }
         }
 
         $final = $str.$key;
-
         return md5($final);
 
     }
 
     static function checkSign($data,$sign,$key){
+
         $encodeSign =  self::encodeSign($data,$key);
         if($encodeSign == $sign){
             return true;

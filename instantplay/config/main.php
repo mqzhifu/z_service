@@ -1,5 +1,9 @@
 <?php
 $main = array(
+    'tokenKey'=>'e65178de9e5543a1f3cffd00345da58f',
+    'tokenSecret'=>'e65178de9e5543a1f3cffd00345da58f',
+
+
     'sms'=>array(
         'url' => 'http://task.egret.com/task/push',
         'appid' => 'fdf18ca',
@@ -139,8 +143,6 @@ $main = array(
         array('cnt'=>100, 'goldCoins'=>800, 'status'=>0, 'id'=>4),
     ),
 
-    'tokenKey'=>'e65178de9e5543a1f3cffd00345da58f',
-    'tokenSecret'=>'e65178de9e5543a1f3cffd00345da58f',
 );
 
-$GLOBALS['main'] = $main;
+$GLOBALS[APP_NAME]['main'] = $main;

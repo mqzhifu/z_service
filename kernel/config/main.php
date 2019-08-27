@@ -1,5 +1,8 @@
 <?php
 $main = array(
+    //5分钟内，请求多少次。0为关闭
+    'ipCntLimit'=>100,
+
     'sms'=>array(
         'url' => 'http://task.egret.com/task/push',
         'appid' => 'fdf18ca',
