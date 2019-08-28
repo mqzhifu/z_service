@@ -2,8 +2,7 @@
 class IndexCtrl extends BaseCtrl  {
 
     function index(){
-        echo "welcome!";
-        exit;
+        return $this->out(200);
     }
 
     function getServer(){

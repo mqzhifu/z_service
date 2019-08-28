@@ -181,6 +181,141 @@ class FilterLib {
 
         return true;
     }
+
+    static function apiReturnDataCheckInit($apiReturn,$msg){
+        foreach($apiReturn as $k=>$v){
+            //标量
+            if($k =='scalar') {
+                if ($v['must']) {
+                    if ($v['type'] == 'int') {
+                        $msg = intval($msg);
+                    } elseif ($v['type'] == 'string') {
+                        $msg = (string)$msg;
+                    }
+                } else {
+                    if( ! $msg ){
+                        continue;
+                    }
+
+                    if ($v['type'] == 'int') {
+                        $msg = intval($msg);
+                    } elseif ($v['type'] == 'string') {
+                        $msg = (string)$msg;
+                    }
+                }
+                //判断当前KEY   是不是  一维数据
+            }elseif($k == 'array_key_number_one'){
+                if($v['must']){
+                    if(!$msg){
+                        exit("return value must have value.array_key_number_one");
+                    }
+                }
+                foreach($msg as $k3=>$v3){
+                    foreach($v['list'] as $k2=>$v2){
+                        if($v2['must']){
+                            if($v2['type'] == 'int'){
+                                $msg[$k2] = intval($msg[$k2]);
+                            }elseif($v2['type'] == 'string'){
+                                $msg[$k2] = (string)$msg[$k2];
+                            }
+                        }else{
+                            if(arrKeyIssetAndExist($msg,$k2)){
+                                if($v2['type'] == 'int'){
+                                    $msg[$k2] = intval($msg[$k2]);
+                                }elseif($v2['type'] == 'string'){
+                                    $msg[$k2] = (string)$msg[$k2];
+                                }
+                            }
+                        }
+
+                    }
+                }
+                //是个 二维数组
+            }elseif($k == 'array_key_number_two'){
+                if($v['must']){
+                    if(!$msg){
+                        exit("return value must have value.array_key_number_two");
+                    }
+                }
+
+                foreach($msg as $k3=>$v3){
+                    foreach($v['list'] as $k2=>$v2){
+                        if($v2['type'] == 'int'){
+                            $msg[$k3][$k2] = intval($msg[$k3][$k2]);
+                        }elseif($v2['type'] == 'string'){
+                            $msg[$k3][$k2] = (string)$msg[$k3][$k2];
+                        }
+                    }
+                }
+            }elseif(arrKeyIssetAndExist($v,'type')){
+                if ($v['must']) {
+                    if ($v['type'] == 'int') {
+                        $msg[$k] = intval($msg[$k]);
+                    } elseif ($v['type'] == 'string') {
+                        $msg[$k] = (string)$msg[$k];
+                    }
+                } else {
+                    if( ! $msg ){
+                        continue;
+                    }
+
+                    if ($v['type'] == 'int') {
+                        $msg[$k] = intval($msg[$k]);
+                    } elseif ($v['type'] == 'string') {
+                        $msg[$k] = (string)$msg[$k];
+                    }
+                }
+            }
+
+
+            elseif($v['array_type'] =='array_key_number_one'){
+                if($v['must']){
+                    if(!arrKeyIssetAndExist($msg,$k)){
+                        exit("return value must have value.array_type array_key_number_one");
+                    }
+                }
+                foreach($msg[$k] as $k3=>$v3){
+                    foreach($v['list'] as $k2=>$v2){
+                        if($v2['must']){
+                            if($v2['type'] == 'int'){
+                                $msg[$k][$k3] = intval($msg[$k][$k3]);
+                            }elseif($v2['type'] == 'string'){
+                                $msg[$k][$k3] = (string)$msg[$k][$k3];
+                            }
+                        }else{
+                            if(arrKeyIssetAndExist($msg[$k],$k3)){
+                                if($v2['type'] == 'int'){
+                                    $msg[$k][$k3] = intval($msg[$k][$k3]);
+                                }elseif($v2['type'] == 'string'){
+                                    $msg[$k][$k3] = (string)$msg[$k][$k3];
+                                }
+                            }
+                        }
+                    }
+                }
+            }elseif($v['array_type'] =='array_key_number_two'){
+                if(!$v['must']){
+                    if(!arrKeyIssetAndExist($msg,$k)){
+                        continue;
+                    }
+                }
+
+                foreach($msg[$k] as $k3=>$v3){
+                    foreach($v['list'] as $k2=>$v2){
+                        if($v2['type'] == 'int'){
+                            $msg[$k][$k3][$k2] = intval($msg[$k][$k3][$k2]);
+                        }elseif($v2['type'] == 'string'){
+                            $msg[$k][$k3][$k2] = (string)$msg[$k][$k3][$k2];
+                        }
+                    }
+                }
+            }else{
+                exit("api config return info err!");
+            }
+        }
+
+        return $msg;
+    }
 	
 }
 

@@ -20,8 +20,6 @@ class ExceptionFrameLib extends Exception {
 	        exit("throwCatch $exceptionInfo type error!");
         }
 
-        var_dump($errInfo);exit;
-
         if(RUN_ENV == 'WEBSOCKET'){
             LogLib::wsWriteFileHash([$errInfo[0]['msg']]);
         }else{

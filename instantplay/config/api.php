@@ -3,6 +3,16 @@ $arr = array(
     'index'=>array(
         'title'=>'默认',
 
+
+        'index'=>array(
+            'ws'=>array('request_code'=>1001,'response_code'=>1002),
+            'title'=>'test',
+            'request'=>array(),
+            'return'=>array(
+            ),
+        ),
+
+
         'heartbeat'=>array(
             'ws'=>array('request_code'=>1001,'response_code'=>1002),
             'title'=>'心跳-每5秒一次',
@@ -2628,4 +2638,4 @@ $arr = array(
 
 
 );
-$GLOBALS['api'] = $arr;
+$GLOBALS[APP_NAME]['api'] = $arr;

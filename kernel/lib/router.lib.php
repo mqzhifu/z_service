@@ -1,17 +1,56 @@
 <?php
 //前端路由器
-class DispathLib{
+class RouterLib{
 
     public $reflection = 1;//使用反射路由
     public $ctrl = null;
     public $ac = null;
     public $app = null;
+    public $para = null;
+    public $requestId = 0;
+
+
+    public $clientHeader = null;
+
 	function __construct($frame = null){
 		$this->clientFrame = $frame;
 	}
-	function authDispath($ctrl = '',$ac= ''){
 
-	    if(!arrKeyIssetAndExist($GLOBALS[KERNEL_NAME]['app'],APP_NAME)){
+	function check($ctrl = '',$ac= ''){
+	    $checkApp = $this->checkApp();
+	    if($checkApp['code'] != 200){
+            return out_pc($checkApp['code']);
+        }
+        $checkCtrlAc = $this->checkCtrlAc($ctrl,$ac);
+        if($checkCtrlAc['code'] != 200){
+            return out_pc($checkCtrlAc['code']);
+        }
+        //检查IP是否在黑名单中
+        $checkIp = FilterLib::checkIPRequest();
+        if(!$checkIp){
+            exit("IP限制");
+        }
+
+        $this->initPara();
+
+        $sign = _g('sign');
+        if(!$sign){
+            return out_pc(9205);
+        }
+
+        $checkSign = TokenLib::checkSign($this->para , $sign,$this->app['apiSecret']);
+        if(!$checkSign){
+            return out_pc(9206);
+        }
+
+        $this->clientHeader = get_client_info();
+
+        return out_pc(200,null,KERNEL_NAME);
+
+    }
+
+    function checkApp(){
+        if(!arrKeyIssetAndExist($GLOBALS[KERNEL_NAME]['app'],APP_NAME)){
             return out_pc(9207,null,KERNEL_NAME);
         }
 
@@ -22,6 +61,10 @@ class DispathLib{
 
         $this->app = $app;
 
+        return out_pc(200,null,KERNEL_NAME);
+    }
+
+	function checkCtrlAc($ctrl = '',$ac= ''){
 		if(RUN_ENV == 'WEB'){
             $ctrl = _g(PARA_CTRL);
             $ac = _g(PARA_AC);
@@ -42,7 +85,6 @@ class DispathLib{
                 return out_pc(9201,null,KERNEL_NAME);
         }
 
-
 		$dir =  APP_DIR .DS. C_DIR_NAME . DS ;
 		$ctrl_file = ($dir . $ctrl .C_EXT);
 		if( !file_exists($ctrl_file))
@@ -61,19 +103,7 @@ class DispathLib{
 
 	}
 	//$paraData:ws 模式才会传入此值
-	function action($paraData = null){
-	    $rs = $this->authDispath();
-	    if($rs['code'] != 200){
-	        $msg = $rs['code'] . "-".$rs['msg'];
-            ExceptionFrameLib::throwCatch($msg,'dispath');
-        }
-
-        //检查IP是否在黑名单中
-        $checkIp = FilterLib::checkIPRequest();
-	    if(!$checkIp){
-	        exit("IP限制");
-        }
-
+	function initPara($paraData = null){
         $ac = $this->ac;
         $ctrl = $this->ctrl .C_CLASS;
         //反射，根据POST的KEY-VALUE，对应到方法的参数上
@@ -119,24 +149,7 @@ class DispathLib{
                 }
             }
 
-            $sign = _g('sign');
-            if(!$sign){
-                ExceptionFrameLib::throwCatch("9205-sign签名为空",'dispath');
-            }
-
-            $checkSign = TokenLib::checkSign($para , $sign,$this->app['apiSecret']);
-            if(!$checkSign){
-                ExceptionFrameLib::throwCatch("9206-签名错误",'dispath');
-            }
-
-            $this->logRequest($para);
-
-            $class = new $ctrl($this->clientFrame,$this->ctrl,$this->ac);
-
-            $reflection = new ReflectionClass($ctrl);
-            $me = $reflection->getMethod($ac);
-            //调用实际执行方法
-            return $me->invokeArgs($class,$para);
+            $this->para = $para;
         }
 //        else{
 //            $ctrlClass = get_instance_of($ctrl);
@@ -144,29 +157,59 @@ class DispathLib{
 //        }
 	}
 
-    //添加 请求日志 mysql
-    function logRequest($para){
-        if(RUN_ENV != 'WEBSOCKET'){
-            $requestMerge = array_merge($_REQUEST,$para);
-            if(!$requestMerge){
-                $requestData = "-";
-            }else{
-                $requestData = json_encode($requestMerge);
-            }
+	function action(){
+        $rid = $this->getRequestId();
+        $this->requestId = $rid;
 
-            $data = array(
-                'ctrl'=>$this->ctrl,
-                'AC'=>$this->ac,
-                'a_time'=>time(),
-                'IP'=>get_client_ip(),
-                'request'=>$requestData,
-                'client_data'=>json_encode(get_client_info()),
-            );
+        $this->logRequest();
+
+
+        $ctrl = $this->ctrl .C_CLASS;
+        $class = new $ctrl($this);
+
+        $reflection = new ReflectionClass($ctrl);
+        $me = $reflection->getMethod($this->ac);
+        //调用实际执行方法
+        return $me->invokeArgs($class,$this->para);
+    }
+
+    function getRequestId(){
+        $key = RedisPHPLib::getAppKeyById($GLOBALS[KERNEL_NAME]['rediskey']['request_id']['key'], "" , KERNEL_NAME);
+        $script = "redis.call('incr', KEYS[1]) ; return  redis.call('get', KEYS[1])";
+        $execRs = RedisPHPLib::getServerConnFD()->eval($script,array($key),1);
+
+//        var_dump($execRs);
+//        $t = RedisPHPLib::getServerConnFD()->get($key);
+//        var_dump($t);exit;
+        return $execRs;
+    }
+
+    //添加 请求日志 mysql
+    function logRequest(){
+	    $data = $this->para;
+        $data['rid'] = $this->requestId;
+	    LogLib::accessWriteFileHash(null,$this->para);
+        if(RUN_ENV != 'WEBSOCKET'){
+//            $requestMerge = array_merge($_REQUEST,$para);
+//            if(!$requestMerge){
+//                $requestData = "-";
+//            }else{
+//                $requestData = json_encode($requestMerge);
+//            }
+//
+//            $data = array(
+//                'ctrl'=>$this->ctrl,
+//                'AC'=>$this->ac,
+//                'a_time'=>time(),
+//                'IP'=>get_client_ip(),
+//                'request'=>$requestData,
+//                'client_data'=>json_encode(get_client_info()),
+//            );
 
 //            $id = AccesslogModel::db()->add($data);
-            $moreId = AccessLogMoreModel::add($data);
-            $this->accessMore_aid = $moreId;
-            return $moreId;
+//            $moreId = AccessLogMoreModel::add($data);
+//            $this->accessMore_aid = $moreId;
+//            return $moreId;
         }
     }
 }

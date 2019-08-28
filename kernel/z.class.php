@@ -17,7 +17,7 @@ define("CLOSE_KERNEL",0);
 
 //常量检查
 Z::checkConst();
-
+Z::checkExt();
 //===========控制器==================
 defined('C_EXT') or define('C_EXT', '.ctrl.php');//文件的后缀
 defined('C_DIR_NAME') or define('C_DIR_NAME', 'ctrl');//文件夹名
@@ -58,8 +58,6 @@ defined('DEF_AC') or define('DEF_AC','index');
 defined('PLUGIN') or define(  'PLUGIN',KERNEL_DIR . '/plugins/');
 //总日志目录
 defined('LOG_PATH') or define('LOG_PATH', BASE_DIR.DS."log");
-//项目-日志目录
-defined('LOG_APP_PATH') or define('LOG_APP_PATH', LOG_PATH.DS.APP_NAME);
 //总（配置）目录
 define("CONFIG_DIR",KERNEL_DIR.DS."config");
 define("FUNC_DIR",KERNEL_DIR.DS."functions");
@@ -87,16 +85,6 @@ class Z{
 		include_once FUNC_DIR.DS.'str_arr.php';//公共函数 - 字符串
         include_once FUNC_DIR.DS.'client.php';//公共函数 - 客户端信息
         include_once FUNC_DIR.DS.'url.php';//公共函数 - 客户端信息
-
-        //所有错误码
-        include_once APP_CONFIG_DIR.DS."api_err_code.php";
-        //主-配置文件
-        include_once APP_CONFIG_DIR.DS."main.php";
-        //redis所有key的配置文件
-        include_once APP_CONFIG_DIR.DS."rediskey.php";
-
-        include_once APP_CONFIG_DIR.DS."lang".DS .LANG.DS ."err.php";
-        include_once APP_CONFIG_DIR.DS."lang".DS .LANG.DS ."desc.php";
 
         //框架开始执行时间-开始时间
 		$GLOBALS['start_time'] = microtime(TRUE);
@@ -195,11 +183,43 @@ class Z{
 //        if(APP_NAME =='instantplayadmin' || APP_NAME == 'mgadmin' || APP_NAME == 'gameadmin' || APP_NAME == 'instantplayadminnew' || APP_NAME =='adsystemadmin'){
 //            $Dispath = new DispathAdminLib();
 //        }else{
-            $Dispath = new DispathLib();
+            $router = new RouterLib();
 //        }
 //        LogLib::accessWrite();
         try{
-            $returnData = $Dispath->action();
+            $rs = $router->check();
+
+            if($rs['code'] != 200){
+                $msg = $rs['code'] . "-".$rs['msg'];
+                ExceptionFrameLib::throwCatch($msg,'dispath');
+            }
+
+            $returnData = $router->action();
+            if(RUN_ENV != 'WEBSOCKET'){
+                $exec_time = $GLOBALS['start_time'] - microtime(TRUE);
+                if( $returnData ){
+                    if( strlen( $returnData ) >1000){
+                        $returnData = substr( $returnData,0,1000);
+                    }
+                }
+
+                LogLib::responseWriteFileHash($exec_time,$returnData);
+//                $accessData = array(
+//                    'uid'=>$this->uid,
+//                    'return_info'=>$msg,
+//                    'exec_time'=>$exec_time,
+//                );
+//
+//                if( strpos(APP_NAME,'admin') === false){
+//                    if($this->ctrl !='sdk'){
+//                        $accessData['code'] = $code;
+//                        AccessLogMoreModel::upById($this->accessMore_aid,$accessData);
+//                    }
+//
+//                }
+            }
+            echo $returnData;
+            exit;
         }catch (Exception $e){
             ExceptionFrameLib::throwCatch($e);
         }
@@ -304,6 +324,14 @@ class Z{
 
         if(!defined('STATIC_URL'))
             self::outError(9124);
+    }
+
+    static function checkExt(){
+	    $arr = array('seaslog','gd','mysqli','json','mbstring','openssl','redis','xml','zip','zlib','swoole','grpc','protobuf','curl','vld','zookeeper');
+	    foreach ($arr as $k=>$v) {
+            $rs = extension_loaded($v);
+//            var_dump($rs);
+	    }
     }
 }
 //self::initLanguageConst();
