@@ -1,6 +1,7 @@
 view_c
 log/*
 .idea
-kernel/config/**/env.php
-kernel/config/**/dev
-kernel/config/**/local
+*/config/env.php
+*/config/env/local/*
+*/config/env/dev/*
+*/config/env/release/*
