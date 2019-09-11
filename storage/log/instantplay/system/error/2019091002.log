@@ -1,0 +1,2 @@
+info | 2120 | 1568080825.142 | 2019-09-10 02:00:25 | [type]: E_NOTICE[msg]: Undefined index: instantplay [file]: D:\www\z_service\kernel\functions\sys.php [line]: 271 
+info | 2120 | 1568081170.776 | 2019-09-10 02:06:10 | [type]: E_NOTICE[msg]: Undefined index: instantplay [file]: D:\www\z_service\kernel\functions\sys.php [line]: 271 

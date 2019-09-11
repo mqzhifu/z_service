@@ -167,7 +167,6 @@ class FilterLib {
         }
 
         $key = RedisPHPLib::getAppKeyById($GLOBALS[KERNEL_NAME]['rediskey']['black_ip']['key'], $ip , KERNEL_NAME);
-
         $ipCnt = RedisPHPLib::get($key);
         if($ipCnt){
             if($ipCnt >= $GLOBALS[KERNEL_NAME]['main']['ipCntLimit']){

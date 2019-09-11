@@ -362,4 +362,4 @@ $code = array(
 
 
 );
-$GLOBALS['code'] = $code;
+$GLOBALS[APP_NAME]['api_err_code'] = $code;

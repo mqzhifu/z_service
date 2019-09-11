@@ -19,11 +19,11 @@ class RouterLib{
 	function check($ctrl = '',$ac= ''){
 	    $checkApp = $this->checkApp();
 	    if($checkApp['code'] != 200){
-            return out_pc($checkApp['code']);
+            return out_pc($checkApp['code'],KERNEL_NAME);
         }
         $checkCtrlAc = $this->checkCtrlAc($ctrl,$ac);
         if($checkCtrlAc['code'] != 200){
-            return out_pc($checkCtrlAc['code']);
+            return out_pc($checkCtrlAc['code'],KERNEL_NAME);
         }
         //检查IP是否在黑名单中
         $checkIp = FilterLib::checkIPRequest();
@@ -35,12 +35,12 @@ class RouterLib{
 
         $sign = _g('sign');
         if(!$sign){
-            return out_pc(9205);
+            return out_pc(9205,KERNEL_NAME);
         }
 
         $checkSign = TokenLib::checkSign($this->para , $sign,$this->app['apiSecret']);
         if(!$checkSign){
-            return out_pc(9206);
+            return out_pc(9206,KERNEL_NAME);
         }
 
         $this->clientHeader = get_client_info();

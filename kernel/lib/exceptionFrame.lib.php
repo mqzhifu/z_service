@@ -44,7 +44,6 @@ class ExceptionFrameLib extends Exception {
 //        $VerifierCodeLib = new VerifierCodeLib();
 //        $VerifierCodeLib->send(2,'78878296@qq.com',2,array('#errInfo#'=>APP_NAME.$str));
 
-
 	    if(RUN_ENV == 'WEBSOCKET'){
             LogLib::wsWriteFileHash([$str]);
         }else{

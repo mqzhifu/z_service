@@ -18,7 +18,7 @@ class LogLib {
             $str .= json_encode($str);
         }
 
-        $dir = LOG_PATH.DS .APP_NAME ."system";
+        $dir = LOG_PATH.DS .APP_NAME .DS."system";
 
         return self::seasLogInfo($dir,$module,$str);
     }
