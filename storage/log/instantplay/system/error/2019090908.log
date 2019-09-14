@@ -1,3 +1,0 @@
-info | 2140 | 1568016003.231 | 2019-09-09 08:00:03 | [type]: E_WARNING[msg]: session_start(): open(D:\www\z_service/storage/sessioninstantplay\sess_9ed41118a6af7d40be794e75a1bfbd52, O_RDWR) failed: No such file or directory (2) [file]: D:\www\z_service\kernel\lib\session.lib.php [line]: 18 
-info | 2140 | 1568016012.460 | 2019-09-09 08:00:12 | [type]: E_WARNING[msg]: session_start(): open(D:\www\z_service/storage/session/instantplay\sess_9ed41118a6af7d40be794e75a1bfbd52, O_RDWR) failed: No such file or directory (2) [file]: D:\www\z_service\kernel\lib\session.lib.php [line]: 18 
-info | 2140 | 1568016034.177 | 2019-09-09 08:00:34 | [type]: E_NOTICE[msg]: Undefined index: instantplay [file]: D:\www\z_service\kernel\functions\sys.php [line]: 271 

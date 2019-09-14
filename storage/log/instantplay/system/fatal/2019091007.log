@@ -1,4 +1,0 @@
-info | 4696 | 1568102154.701 | 2019-09-10 07:55:54 | [type]:E_CORE_WARNING,[msg]:Module 'xdebug' already loaded,[file]:Unknown,[line]0 
-info | 5688 | 1568102177.411 | 2019-09-10 07:56:17 | [type]:E_CORE_WARNING,[msg]:Module 'xdebug' already loaded,[file]:Unknown,[line]0 
-info | 5540 | 1568102247.93 | 2019-09-10 15:57:27 | [type]:E_CORE_WARNING,[msg]:Module 'xdebug' already loaded,[file]:Unknown,[line]0 
-info | 5180 | 1568102318.863 | 2019-09-10 07:58:38 | [type]:E_WARNING,[msg]:Xdebug MUST be loaded as a Zend extension,[file]:Unknown,[line]0 

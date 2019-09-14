@@ -2,6 +2,12 @@
 class IndexCtrl extends BaseCtrl  {
 
     function index(){
+        include_once PLUGIN.DS."structure".DS."josephLoop.php";
+        $JosephLoop = new JosephLoop();
+        $JosephLoop->method1();
+        exit;
+
+
         return $this->out(200);
     }
 
