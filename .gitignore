@@ -1,5 +1,5 @@
 view_c
-log/*
+storage/*
 .idea
 */config/env.php
 */config/env/local/*

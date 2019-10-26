@@ -2,10 +2,130 @@
 class IndexCtrl extends BaseCtrl  {
 
     function index(){
-        include_once PLUGIN.DS."structure".DS."josephLoop.php";
-        $JosephLoop = new JosephLoop();
-        $JosephLoop->method1();
+//        include_once PLUGIN.DS."structure".DS."josephLoop.php";
+//        $JosephLoop = new JosephLoop();
+//        $JosephLoop->method1();
+//        exit;
+
+        //判断一组数，是否为回文结构
+//        include_once PLUGIN.DS."structure".DS."backSort.php";
+//        $backSort = new BackSort();
+//        $data = array(1,2,3,5,3,2,1);
+//        $rs = $backSort->judge($data);
+//        var_dump($rs);exit;
+
+//        include_once PLUGIN.DS."structure".DS."linkDouble.php";
+//        include_once PLUGIN.DS."structure".DS."copyLink.php";
+//        $link = new LinkDouble();
+//        $link->add(9);
+//        $link->add(10);
+//        $link->add(1);
+//        $link->add(2);
+//
+//
+//        $copyLink  = new CopyLink();
+//        $copyLink->copy($link);
+
+
+//        include_once PLUGIN.DS."structure".DS."stack.php";
+//        $StackArr = new StackArr();
+//        $StackArr->push(1);
+//        $StackArr->push(10);
+//        $StackArr->push(11);
+//        $StackArr->push(4);
+//        $StackArr->push(5);
+//
+//        $data = $StackArr->popAll();
+//
+//        var_dump($data);exit;
+//        exit;
+
+//        include_once PLUGIN.DS."structure".DS."queue.php";
+//        $queue = new Queue();
+//        $queue->pushHead(1);
+//        $queue->pushHead(10);
+//        $queue->pushHead(2);
+//        $queue->pushHead(3);
+//        $queue->pushHead(8);
+//        $queue->pushHead(7);
+//
+//        $data = $queue->getAllByHeader();
+//
+//        var_dump($data);exit;
+
+
+        include_once PLUGIN.DS."structure".DS."matrix.php";
+        $m = new Matrix();
+//        $m->multiply();exit;
+        $money = array(1,5,10);
+        $m->changeMoney($money,100);
+
+        $money = array(1,5,10);
+        $m->changeMoney2($money,100);
+
         exit;
+//        $arr  = array(1,7,4,1,7,9,3,1,6,7,8);
+//        $m->addTestNumber($arr);
+//        $rs = $m->unsortUnsignedIntegerSumRange(20);
+//        exit;
+
+//        $m->arr= null;
+//        $arr  = array(1,2,1,1,1);
+//        $m->addTestNumber($arr);
+//        $rs = $m->unsortUnsignedIntegerSumRange(3);
+
+//        $m = new Matrix();
+//        $arr  = array(1,7,4,1,7,9,3,1,6,7,8);
+//        $m->addTestNumber($arr);
+//        $rs = $m->unsortIntegerSumRange(20);
+//        exit;
+
+
+//        include_once PLUGIN.DS."structure".DS."binaryTree.php";
+//        $c  = new BinaryTree();
+//        $c->add(10);
+//        $c->add(1);
+//        $c->add(11);
+//        $c->add(3);
+//        $c->add(4);
+//        $c->add(20);
+//        $c->add(16);
+//        $c->add(7);
+//        $c->add(2);
+//        $c->add(5);
+//        $c->add(13);
+//        $c->add(6);
+//        //1 2 3 4 5 7 10 11 16 25
+//        $c->foreachDeep();
+//
+//        $c->tt("开始前序");
+//        $c->foreachPreorder($c->rootNodeIndex);
+//        $data = $c->foreachPreorderStack($c->rootNodeIndex,1);
+//        var_dump($data);exit;
+//
+////        $c->readFileLoadMem();exit;
+//
+//        $c->tt("开始中序");
+//        $c->foreachMiddle($c->rootNodeIndex);
+//        $c->foreachMiddleStack($c->rootNodeIndex);exit;
+//        $c->tt("开始后序");
+//        $c->foreachPostorder($c->rootNodeIndex);
+
+
+//        $num = $c->balance();
+//        var_dump($num);
+
+
+        //递归
+
+
+//        include_once PLUGIN.DS."structure".DS."fibonacci.php";
+//        $f = new Fibonacci();
+//        $rs = $f->m2(20);
+//        var_dump($f->cnt);
+//        var_dump($f->numberPool);
+//        exit;
+
 
 
         return $this->out(200);
