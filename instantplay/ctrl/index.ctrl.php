@@ -57,12 +57,14 @@ class IndexCtrl extends BaseCtrl  {
         include_once PLUGIN.DS."structure".DS."matrix.php";
         $m = new Matrix();
 //        $m->multiply();exit;
-        $money = array(1,5,10);
+        $money = array(20,5,10);
         $m->changeMoney($money,100);
 
-        $money = array(1,5,10);
-        $m->changeMoney2($money,100);
-
+        $money = array(20,5,10);
+        $rs = $m->loopChangeMoneyMap($money,0,100);
+        var_dump($m->loopChangeMoneyMapCnt);
+        var_dump($rs);
+        var_dump($m->loopChangeMoneyMapData);
         exit;
 //        $arr  = array(1,7,4,1,7,9,3,1,6,7,8);
 //        $m->addTestNumber($arr);

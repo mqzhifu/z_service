@@ -193,10 +193,89 @@ class Matrix{
         $this->loopCnt = 0;
         $this->rsMap = null;
 
-        $this->loopChangeMoney();
+        $this->loopChangeMoney(null,0,$x);
 
         $this->tt("loopCnt:".$this->loopCnt);
        $this->tt("successTotalCnt:".$this->successTotalCnt);
+
+    }
+
+
+    function changeMoney3($moneyType,$x){
+        $this->loopChangeMoneyMap($moneyType,0,$x);
+    }
+
+    public $loopChangeMoneyMapCnt = 0;
+    public $loopChangeMoneyMapData = null;
+    function loopChangeMoneyMap($arr  ,$index = 0,$x){
+
+        $success = 0;
+        if($index == count($arr)){//证明是最后一个，还后一个
+
+            if(!$x){
+                $success =  1;
+            }else{
+                $success =  0;
+            }
+        }else{
+            for($i=0;$arr[$index] * $i <=$x;$i++){
+                $this->loopChangeMoneyMapCnt++;
+                if(isset($this->loopChangeMoneyMapData[$index+1][$x-$arr[$index] * $i])){
+
+                    $mapValue = $this->loopChangeMoneyMapData[$index+1][$x-$arr[$index] * $i];
+                    if($mapValue == -1){
+                        $success += 0;
+                    }else{
+                        $success +=$mapValue;
+                    }
+
+                }else{
+                    $success +=  $this->loopChangeMoneyMap($arr,$index+1,$x-$arr[$index] * $i);
+                    if($success){
+                        $this->tt($arr[$index]."x".$i."+ok");
+                    }
+                }
+            }
+        }
+
+        if(!$success){//证明 找到了
+            $this->loopChangeMoneyMapData[$index][$x] = -1;
+        }else{
+            $this->loopChangeMoneyMapData[$index][$x] = $success;
+        }
+
+
+
+
+        return $success;
+//        $this->tt("key=".$key);
+//        if($key == count($this->data) - 1){//证明是最后一层了
+//            $numberArrSum = 0;
+//            $numberArrStr = "";
+//            foreach ($numberArr as $k=>$v) {
+//                $numberArrSum += $v;
+//                $numberArrStr .= $v ."+";
+//            }
+//            $numberArrStr = substr($numberArrStr,0,strlen($numberArrStr)-1);
+//
+//            foreach ($this->data[$key] as $k=>$v) {
+//                $this->loopCnt++;
+//                if($numberArrSum+ $v == $this->x){
+//                    $this->successTotalCnt++;
+//                    $this->tt("ok:".$numberArrStr."+".$v);
+//                }
+////                $this->rsMap[][]
+//            }
+//
+//            return -1;
+//        }
+
+
+//        $keyPlus = $key + 1;
+//        foreach ($this->data[$key] as $k=>$v) {
+//            $this->loopChangeMoney($v,$keyPlus,$x - );
+//        }
+
 
     }
 
@@ -217,7 +296,6 @@ class Matrix{
                     $this->successTotalCnt++;
                     $this->tt("ok:".$numberArrStr."+".$v);
                 }
-//                $this->rsMap[][]
             }
 
             return -1;
