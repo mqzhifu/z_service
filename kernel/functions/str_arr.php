@@ -355,7 +355,28 @@ function slen($value,$max,$min = 1,$unicode = 'utf8'){
 
     return 1;
 }
+//用户调试时候的输出
+function _p($info,$br = 1){
+    if(is_array($info)){
+        $info = json_encode($info);
+    }
 
+    if(PHP_OS == 'WINNT'){
+//        $str = iconv("UTF-8","GBK//IGNORE",$info)."\r\n";
+    }
+
+    if($br){
+        if(RUN_ENV == 'WEB'){
+            $br = "<br/>";
+        }else{
+            $br = "\n";
+        }
+
+        $info .= $br;
+    }
+
+    echo $info;
+}
 
 function char_decode($str) {
     $str = strip_tags($str);

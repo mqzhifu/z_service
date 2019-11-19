@@ -12,12 +12,76 @@ class BinaryTree{
     //调试模式
     public $debug = 1;
 
-    function tt($info){
+    function tt($info,$br = 1){
         if($this->debug){
-            echo $info . "<br/>";
+            _p($info,$br);
         }
     }
 
+    //添加一个节点
+    function add($data){
+        $this->tt("开始添加元素:".$data);
+
+        if(!$this->nodePoolLength){
+            $this->tt("当前树为空，添加第一个元素");
+            $nodeIndex = $this->createNode($data);
+            $this->setRootIndex($nodeIndex);
+
+            return 1;
+        }else{
+            $root = $this->addLoop($data,$this->rootNodeIndex);
+            return 2;
+        }
+    }
+    //添加一组数
+    function addGroup($arr){
+        foreach ($arr as $k=>$v) {
+            $this->add($v);
+        }
+    }
+    //删除节点
+    function del($data,$nodeIndex){
+        if($nodeIndex === null){
+            return null;
+        }
+
+        $node = $this->nodePool[$nodeIndex];
+        //先找查找这个值的位置
+        if( $data > $node->data){
+            //不相等，继续查找
+            $node->right = $this->del($data,$node->right);
+            $this->nodePool[$node->right]->parent = $nodeIndex;
+            //先忽略这种情况
+        }elseif( $data <$node->data  ){
+            //不相等，继续查找
+            $node->left = $this->del($data,$node->left);
+            $this->nodePool[$node->left]->parent = $nodeIndex;
+        } else{//这是相等的情况，证明这就是要删除的值
+            if( $node->left === null && $node->right === null){//该结点，左右均为空
+                //直接删除即可
+                unset($this->nodePool[$nodeIndex]);
+                $nodeIndex = null;
+            }elseif($node->left && $node->right){//该节点左右都有值
+                $leftNodeIndex = $this->loopFindLeftMinNode($node->right);
+                $data = $this->getNodeData($leftNodeIndex);
+                $node->data = $data;
+//                root->right = deleteNode(root->right, temp->key);
+            }else{//其中一个有值
+                if($node->left){
+                    unset($this->nodePool[$nodeIndex]);
+                    $nodeIndex = $node->left;
+                }else{
+                    unset($this->nodePool[$nodeIndex]);
+                    $nodeIndex = $node->right;
+                }
+
+            }
+        }
+
+        if($nodeIndex === null){
+            return null;
+        }
+    }
     //获取一人节点的  高度
     function getNodeHeight($nodeIndex){
         if(!$nodeIndex){
@@ -46,37 +110,19 @@ class BinaryTree{
     }
     //获取一个节点的  数据值
     function getNodeData($nodeIndex){
-        if(!$nodeIndex){
+        if(!$nodeIndex)
             return 0;
-        }
 
-        if(!isset($this->nodePool[$nodeIndex])){
+        if(!isset($this->nodePool[$nodeIndex]))
             return 0;
-        }
 
         return $this->nodePool[$nodeIndex]->data;
-    }
-    //添加一个节点
-    function add($data){
-        $this->tt("开始添加元素:".$data);
-
-        if(!$this->nodePoolLength){
-            $this->tt("当前树为空，添加第一个元素");
-            $nodeIndex = $this->createNode($data);
-            $this->setRootIndex($nodeIndex);
-
-            return 1;
-        }else{
-            $root = $this->addLoop($data,$this->rootNodeIndex);
-            return 2;
-        }
     }
     //根据 VALUE ，查找<等于>该值 的一个节点,递归
     //recursion
     function find($data,$locationIndex = 0){
-        if(!$locationIndex){
+        if(!$locationIndex)
             $locationIndex = $this->rootNodeIndex;
-        }
 
         $node = $this->nodePool[$locationIndex];
         if($node->data == $data){
@@ -119,14 +165,6 @@ class BinaryTree{
         }
         $this->tt("未找到");
     }
-
-//    function setNodeHeight($node){
-//        if($this->getNodeHeight($node->left) > $this->getNodeHeight($node->right)){
-//            $node->height = $this->getNodeHeight($node->left) + 1;
-//        }else{
-//            $node->height = $this->getNodeHeight($node->right) + 1;
-//        }
-//    }
     //判断一个节点的，左子 右子  哪个 高度更大
     function childrenMaxHeight($node){
         if($this->getNodeHeight($node->left) > $this->getNodeHeight($node->right)){
@@ -135,7 +173,6 @@ class BinaryTree{
             return $this->getNodeHeight($node->right) ;
         }
     }
-
     //左旋转
     function llRotate($nodeIndex){
         $node = $this->getNodeByIndex($nodeIndex);
@@ -191,22 +228,25 @@ class BinaryTree{
 
         return $newThreeRootNodeIndex;
     }
-
-    //新加一个节点时，递归查找该放到哪个节点的下面
-    //实际就是，从根节点遍历，小于就找左边的节点，大于就找到右边的节点
+    //搜索二叉树，新加一个节点时，递归查找该放到哪个节点的下面
+    //从根节点(locationIndex)遍历，小于就找左边的节点，大于就找到右边的节点
     //当找到null的时候，放到该节点的下面
+    //搜索完毕后，平衡二叉树，会决定如何旋转
     function addLoop($data,$locationIndex ){
-        if($locationIndex === null){
+        $this->tt($data." ".$locationIndex);
+        if( $locationIndex === null){
             $newNodeIndex = $this->createNode($data);
             return $newNodeIndex;
         }
+        //根据引用地址，获取一个元素(从根元素开始遍历)
+        $node = $this->getNodeByIndex($locationIndex);
+        if(!$node)
+            exit("getNodeByIndex is null");
 
-        $node = $this->nodePool[$locationIndex];
         if( $data > $node->data){
             $node->right = $this->addLoop($data,$node->right);
             $this->nodePool[$node->right]->parent = $locationIndex;
-            //先忽略这种情况
-        }elseif( $data <$node->data  ){
+        }elseif( $data < $node->data  ){
             $node->left = $this->addLoop($data,$node->left);
             $this->nodePool[$node->left]->parent = $locationIndex;
         } else{//这是相等的情况，先忽略这种情况
@@ -253,56 +293,11 @@ class BinaryTree{
     }
     //循环找到一个节点的，最小的那个子节点
     function loopFindLeftMinNode($nodeIndex){
-
         while( $this->getNodeByIndex($nodeIndex)->left !== null){
             $nodeIndex = $this->getNodeByIndex($nodeIndex)->left;
         }
 
         return $nodeIndex;
-    }
-
-    //删除节点
-    function del($data,$nodeIndex){
-        if($nodeIndex === null){
-            return null;
-        }
-
-        $node = $this->nodePool[$nodeIndex];
-        //先找查找这个值的位置
-        if( $data > $node->data){
-            //不相等，继续查找
-            $node->right = $this->del($data,$node->right);
-            $this->nodePool[$node->right]->parent = $nodeIndex;
-            //先忽略这种情况
-        }elseif( $data <$node->data  ){
-            //不相等，继续查找
-            $node->left = $this->del($data,$node->left);
-            $this->nodePool[$node->left]->parent = $nodeIndex;
-        } else{//这是相等的情况，证明这就是要删除的值
-            if( $node->left === null && $node->right === null){//该结点，左右均为空
-                //直接删除即可
-                unset($this->nodePool[$nodeIndex]);
-                $nodeIndex = null;
-            }elseif($node->left && $node->right){//该节点左右都有值
-                $leftNodeIndex = $this->loopFindLeftMinNode($node->right);
-                $data = $this->getNodeData($leftNodeIndex);
-                $node->data = $data;
-//                root->right = deleteNode(root->right, temp->key);
-            }else{//其中一个有值
-                if($node->left){
-                    unset($this->nodePool[$nodeIndex]);
-                    $nodeIndex = $node->left;
-                }else{
-                    unset($this->nodePool[$nodeIndex]);
-                    $nodeIndex = $node->right;
-                }
-
-            }
-        }
-
-        if($nodeIndex === null){
-            return null;
-        }
     }
 
     function isEmpty(){
@@ -336,22 +331,8 @@ class BinaryTree{
 
     }
 
-    //根据 尝试 遍历
-    function foreachDeep(){
-        if($this->isEmpty()){
-            exit("tree is empty");
-        }
 
-        include_once PLUGIN.DS."structure".DS."queue.php";
-
-        $this->tt("开始深度遍历");
-
-
-        $queue = new Queue();
-        $queue->pushHead($this->nodePool[$this->rootNodeIndex]);
-
-        $level = 1;
-        $data = null;
+    function readSaveFile(){
         //#代表NULL,就是空，为了方便打印出整颗树在HTML 上
         while ( $nodes = $queue->popALLFromHead()){
             $this->tt("level:".$level);
@@ -387,7 +368,60 @@ class BinaryTree{
             }
             $level++;
         }
+    }
 
+    //根据 深度 遍历
+    function foreachByDeep(){
+        if($this->isEmpty()){
+            exit("tree is empty");
+        }
+
+        include_once PLUGIN.DS."structure".DS."queue.php";
+
+        $this->tt("开始<深度>遍历");
+        //将每一层节点，压入队列中，再依次读取出来，判断是否有子级节点。重复操作
+        $queue = new Queue();
+        $queue->pushHead($this->getNodeByIndex($this->rootNodeIndex));
+
+        $level = 1;//层级
+        $data = null;//保存每一层节点的DATA值
+        //#:代表<空>元素,占位符
+        while ( $nodes = $queue->popALLFromHead()){
+            $this->tt("level:".$level);
+            foreach ($nodes as $k=>$node) {
+                if($node == "#"){
+                    $data[$level][] = "#";
+                    continue;
+                }
+                $this->tt(" im node:".$node->data."  height:".$node->height);
+                $data[$level][] = $node->data;
+                if($node->left !== null && $node->right !== null){
+                    $queue->pushHead($this->getNodeByIndex($node->left));
+                    $queue->pushHead($this->getNodeByIndex($node->right));
+                }elseif($node->left === null && $node->right === null){
+                    $queue->pushHead("#");
+                    $queue->pushHead("#");
+                }else{
+                    if($node->left !== null && $node->right === null){
+                        $queue->pushHead($this->nodePool[$node->left]);
+                        $queue->pushHead("#");
+                    }else{
+                        $queue->pushHead("#");
+                        $queue->pushHead($this->nodePool[$node->right]);
+                    }
+                }
+
+
+            }
+            $level++;
+        }
+
+
+        $this->formatTreeEchoHtml($data);
+
+    }
+    //格式化树，以HTML方式输出
+    function formatTreeEchoHtml($data){
         $maxElementNum = 0;
         foreach ($data as $k=>$v) {
             $length = count($v);
@@ -413,9 +447,8 @@ class BinaryTree{
         $html .= "</table>";
 
         echo $html;
-
-        return $data;
     }
+
     //前序 用栈实现
     function foreachPreorderStack($nodeIndex,$isSerialize = 0){
         $str = "";

@@ -1,140 +1,130 @@
 <?php
 //循环-链表结构
 class LinkLoop{
-    public $head = null;//链表头部指针
-    public $foot = null;//链表尾部指针
+    public $first = 0;
     public $nodePool = null;//内存池，保存结点
-    public $incr = 0;//累加器
-    public $nodePoolLength = 0;//记录，一共有多少个节点
+    public $nodePoolLength = 0;
+    public $nodePoolAddress = 0;
+    //在尾部-添加一个结点
+    function add($data){
+        if($this->isEmpty()){
+            $nodeIndex = $this->createNode($data);
+            $this->first = $nodeIndex;
+            $this->nodePool[$nodeIndex]->next = $nodeIndex;
+            $this->nodePool[$nodeIndex]->last = $nodeIndex;
 
-    //生成一个结点
-    function makeNode(){
-        $arr = array(
-            'last'=>null,//上一个元素的地址
-            'next'=>null,//下一个元素的地址
-            'data'=>null,//数据
-            'current'=>null,//当前元素的地址
-        );
-        return $this->addNodePool($arr);
+            return $nodeIndex;
+        }
+
+        $nodeIndex = $this->createNode($data);
+        $findEndNode = $this->findEndNode();
+        $findEndNode->next = $nodeIndex;
+
+        $this->nodePool[$nodeIndex]->next = $this->first;
+
+        $this->nodePool[$this->first]->last = $nodeIndex;
+
+        $this->nodePool[$nodeIndex]->last =  $findEndNode->index;
     }
-    //申请内存地址，将一个节点加入到内存池中，持久化
-    function addNodePool($node){
-        $index = count($this->nodePool) ;//这里按说应该要减去1，但为了下面
-        $node['current'] = $index;
-        $this->nodePool[] = $node;
 
+    function addGroup($arr){
+        foreach ($arr as $k=>$v) {
+            $this->add($v);
+        }
+
+    }
+
+    function getALL(){
+        $firstIndex = $this->first;
+        $index = $this->first;
+        $node = $this->nodePool[$index];
+        $rs = array($node);
+        while($node->next != $firstIndex){
+            $node = $this->nodePool[$node->next];
+            $rs[] = $node;
+        }
+        return $rs;
+    }
+
+    function findEndNode(){
+        $firstIndex = $this->first;
+        $index = $this->first;
+        $node = $this->nodePool[$index];
+        while($node->next != $firstIndex){
+            $node = $this->nodePool[$node->next];
+        }
+        return $node;
+    }
+
+    function findNodeByData($data){
+        $firstIndex = $this->first;
+        $index = $this->first;
+        $node = $this->nodePool[$index];
+        while(1){
+            if($node->data == $data){
+                return $node;
+            }
+            if($node->next == $firstIndex){
+                break;
+            }
+            $node = $this->nodePool[$node->next];
+
+        }
+        return -1;
+    }
+
+    function createNode($data){
+        $index = $this->nodePoolAddress;
+
+        $node = new LinkLoopNode();
+        $node->data = $data;
+        $node->index = $index;
+
+        $this->nodePool[$index] = $node;
+        $this->nodePoolAddress++;
         $this->nodePoolLength++;
 
         return $index;
     }
-    //判断当前列表是否为空
-    function empty(){
-        if($this->head !== null){
-            return false;
-        }
-
-        return true;
-    }
-    //在尾部-添加一个结点
-    function add($data){
-        if($this->empty()){
-            $newNodeIndex = $this->makeNode();
-            $this->nodePool[$newNodeIndex]['data'] = $data;
-            $this->head = $newNodeIndex;
-            $this->foot = $newNodeIndex;
-
-            $this->nodePool[$newNodeIndex]['last'] = $newNodeIndex;
-            $this->nodePool[$newNodeIndex]['next'] = $newNodeIndex;
-
-            return $newNodeIndex;
-        }
-        //在末尾的后面加一个元素
-        $newNodeIndex = $this->makeNode();
-        $this->nodePool[$newNodeIndex]['data'] = $data;
-        //处理当前新节点
-        $this->nodePool[$newNodeIndex]['last'] = $this->nodePool[$this->foot]['current'];
-        $this->nodePool[$newNodeIndex]['next'] = $this->head;
-
-        //尾部的节点改变 了，链表头部，的上一个节点，改成尾部，实现循环
-        $this->nodePool[$this->head]['last'] = $newNodeIndex;
-        //原尾部结点
-        $this->nodePool[$this->foot]['next'] = $newNodeIndex;
-
-        //新节点是加在链表尾部，尾部的地址就得用新的节点值
-        $this->foot =  $newNodeIndex;
-
-        return $newNodeIndex;
-    }
     //删除一个节点
-    function delOne($key,$type = 1){
-        if($this->empty())
-            return false;
-
-        $node = $this->findOne($key,$type);
-        if(is_int($node))
-            return $node;
-
-        //证明当前链表就只有一个元素了
-        if($node['index'] == $this->head && $node['index'] == $this->foot){
-            unset($this->nodePool[$node['index'] ]);
-            $this->head = null;
-            $this->foot = null;
-
-        }elseif($node['index'] == $this->foot){//删除的是最后一个值
-//            echo "aa:".$node['last']['current']." "."header:".$this->head." foot:".$this->foot."<br/>";
-            $this->nodePool[$node['last']]['next'] = $this->head;
-            $this->nodePool[$this->head]['last'] = $this->nodePool[$node['last']]['current'];
-
-            $this->foot = $this->nodePool[$node['last']] ['current'];
-
-            unset($this->nodePool[$node['index'] ]);
-        }elseif($node['index'] == $this->head){//删除的是头部
-            $this->nodePool[$node['last']] ['next'] = $node['next'];
-            $this->nodePool[$node['next']] ['last'] = $this->nodePool[$node['last']]['current'];
-            $this->head = $this->nodePool[$this->head]['next'];
-
-            unset($this->nodePool[$node['index'] ]);
-        }else{
-            $this->nodePool[$node['last']] ['next'] = $node['next'];
-            $this->nodePool[$node['next']] ['last'] = $this->nodePool[$node['last']]['current'];
-            unset($this->nodePool[$node['index'] ]);
+    function delOneByData($data){
+        $node = $this->findNodeByData($data);
+        if(is_int($node)){
+            exit("err ,no find.");
         }
-        //将总元素数量-1
+
+        if($node->index == $this->first){
+            $this->first = $this->nodePool[$this->first]->next;
+        }
+
+        $this->nodePool[$node->next]->last = $node->last;
+        $this->nodePool[$node->last]->next = $node->next;
+        unset($this->nodePool[$node->index]);
+
         $this->nodePoolLength--;
 
         return 1;
     }
-    //根据 指针 位置 找
-    function findOne($key){
-        if($this->empty())
-            return -1;
 
-        $fist = $this->head;
-        while(1){
-            if($fist == $this->foot){
-                if($key == 8){
-
-                    $this->nodePool[$fist]['current'];
-                }
-                //最后一个
-                if($key == $this->nodePool[$fist]['current']){
-                    $node =  $this->nodePool[$fist];
-                    $node['index'] = $fist;
-                    return $node;
-                }
-                break;
-            }
-
-            if($key == $this->nodePool[$fist]['current']){
-                $node =  $this->nodePool[$fist];
-                $node['index'] = $fist;
-                return $node;
-            }
-
-            $fist = $this->nodePool[$fist]['next'];
+    function isEmpty(){
+        if($this->nodePoolLength == 0){
+            return true;
         }
 
-        return -3;
+        return false;
     }
 
+    function getNodeByIndex($nodeIndex){
+        if(!isset($this->nodePool[$nodeIndex])){
+            return null;
+        }
+        return $this->nodePool[$nodeIndex];
+    }
+}
+
+class LinkLoopNode{
+    public $next = null;
+    public $last = null;
+    public $data = null;
+    public $index = null;
 }

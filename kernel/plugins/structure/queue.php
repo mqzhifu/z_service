@@ -6,7 +6,6 @@ class Queue{
     public $head = null;
     public $foot = null;
     public $length = 0;
-    public $nodePool = array();
 
     public $link = null;
 
@@ -32,11 +31,15 @@ class Queue{
     }
 
     function popHead(){
-        $this->link->delOne($this->link->head,2);
+        $this->link->delOne(1,2,1);
     }
 
     function popFoot(){
-        $this->link->delOne($this->link->foot,2);
+        $rs = $this->link->delOne(1,2,2);
+        if($rs != 1){
+
+            exit("popFoot error:".$rs);
+        }
     }
     //从头部开始弹出所有
     function popALLFromHead(){
@@ -60,7 +63,10 @@ class Queue{
     }
     //获取
     function getAllByHeader(){
-        $data =  $this->link->getAllByFooter();
+        $data =  $this->link->getAllByHeader();
+        if($data == -1){
+            return -1;
+        }
         $list = array();
         foreach ($data as $k=>$v) {
             $list[] = $v['data'];
@@ -70,12 +76,32 @@ class Queue{
     }
     //获取
     function getAllByFooter(){
-        $data = $this->link->getAllByHeader();
+        $data = $this->link->getAllByFooter();
         $list = array();
         foreach ($data as $k=>$v) {
             $list[] = $v['data'];
         }
 
         return $list;
+    }
+
+    function isEmpty(){
+        return $this->link->empty();
+    }
+
+    function getOneByFooter(){
+        $node = $this->link->getOneByFooter();
+        if($node == -1)
+            return -1;
+
+        return $node['data'];
+    }
+
+    function getOneByHeader(){
+        $node = $this->link->getOneByHeader();
+        if($node == -1)
+            return -1;
+
+        return $node['data'];
     }
 }
