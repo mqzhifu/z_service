@@ -58,14 +58,18 @@ class IndexCtrl extends BaseCtrl  {
         $tree  = new BinaryTree();
         $arr = array(10,1,11,3,4,20,16,7,2,5,13,6);
         $tree->addGroup($arr);
-        $tree->foreachByDeep();
+        $tree->showTreeByDeep();
 
+//        $tree->tt("开始前序");
+//        $tree->foreachPreorder($tree->rootNodeIndex);
+//        $height = $tree->getHeight($tree->rootNodeIndex,0);
+//        var_dump($height);exit;
+//        $tree->showTreeEdge();
+//        $data = $c->foreachPreorderStack($c->rootNodeIndex,1);
+        $tree->saveToFile(1);
         exit;
 
-//        $c->tt("开始前序");
-//        $c->foreachPreorder($c->rootNodeIndex);
-//        $data = $c->foreachPreorderStack($c->rootNodeIndex,1);
-//        var_dump($data);exit;
+
 //
 ////        $c->readFileLoadMem();exit;
 //
