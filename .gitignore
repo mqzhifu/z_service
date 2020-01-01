@@ -5,3 +5,4 @@ storage/*
 */config/env/local/*
 */config/env/dev/*
 */config/env/release/*
+kernel/plugins/structure/testData

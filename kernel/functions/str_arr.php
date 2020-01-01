@@ -8,6 +8,31 @@ function convert($size){
     $unit=array('b','kb','mb','gb','tb','pb');
     return @round($size/pow(1024,($i=floor(log($size,1024)))),2).' '.$unit[$i];
 }
+
+function format_bytes($bytes,$type){
+    $unit=array('kb','mb','gb','tb');
+    if(!in_array($type,$unit)){
+        return -1;
+    }
+    $rs = 0;
+    switch ($type){
+        case "kb":
+            $rs = $bytes / 1024;
+            break;
+        case "mb":
+            $rs = $bytes / 1024 / 1024;
+            break;
+        case "gb":
+            $rs = $bytes / 1024 / 1024 / 1024;
+            break;
+        case "tb":
+            $rs = $bytes / 1024 / 1024 / 1024  / 1024;
+            break;
+    }
+
+    return $rs;
+}
+
 //二维数组，根据第二维下标取最大值或最小值
 function getArraysort($array,$field=0,$sort="max"){
 

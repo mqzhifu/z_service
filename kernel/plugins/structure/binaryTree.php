@@ -1,11 +1,7 @@
 <?php
 //二叉树
 class BinaryTree{
-    public $dataFileSavePath = "";//物理保存节点的文件位置
-    //前序中序后序，因为是递归，得有个全局值保存
-    public $orderForeachData = null;
-    //前序中序后序，因为是递归，得有个全局值保存，如果还需要保存到文件中
-    public $orderForeachDataSaveStr = "";
+    public $dataFileSavePath = "D:\www\z_service\kernel\plugins\structure\binaryTree.txt";//物理保存节点的文件位置
     //当前树包含总元素个数
     public $nodePoolLength = 0;
     //内存池，伪造成，C里的，内存地址引用
@@ -14,10 +10,24 @@ class BinaryTree{
     public $rootNodeIndex = null;
     //调试模式
     public $debug = 1;
+    //开始，旋转，自平衡
+    public $autoRotate = 1;
+
+    //前序中序后序，因为是递归，得有个全局值保存
+    public $orderForeachData = null;
+    //将树持久化，保存到硬盘中。
+    //有3种模式：前序中序后序，因为是递归，得有个全局值保存
+    public $orderForeachDataSaveStr = "";
 
     function tt($info,$br = 1){
         if($this->debug){
             _p($info,$br);
+        }
+    }
+    //添加一组数
+    function addGroup($arr){
+        foreach ($arr as $k=>$v) {
+            $this->add($v);
         }
     }
     //添加一个节点
@@ -33,12 +43,6 @@ class BinaryTree{
         }else{
             $root = $this->addLoop($data,$this->rootNodeIndex);
             return 2;
-        }
-    }
-    //添加一组数
-    function addGroup($arr){
-        foreach ($arr as $k=>$v) {
-            $this->add($v);
         }
     }
     //删除节点
@@ -83,42 +87,6 @@ class BinaryTree{
         if($nodeIndex === null){
             return null;
         }
-    }
-    //获取一人节点的  高度
-    function getNodeHeight($nodeIndex){
-        if(!$nodeIndex){
-            return 0;
-        }
-
-        if(!isset($this->nodePool[$nodeIndex])){
-            return 0;
-        }
-
-        return $this->nodePool[$nodeIndex]->height;
-    }
-    //根据 KEY 获取一个节点
-    function getNodeByIndex($nodeIndex){
-        if(!isset($this->nodePool[$nodeIndex])){
-            echo $nodeIndex. "getNodeByIndex is null : ".$nodeIndex;
-//            var_dump($this->nodePool[$nodeIndex]);
-            return null;
-        }
-        return $this->nodePool[$nodeIndex];
-    }
-    //设置根节点
-    function setRootIndex($nodeIndex){
-        $this->rootNodeIndex = $nodeIndex;
-        $this->tt("更新树rootIndex:".$nodeIndex);
-    }
-    //获取一个节点的  数据值
-    function getNodeData($nodeIndex){
-        if(!$nodeIndex)
-            return 0;
-
-        if(!isset($this->nodePool[$nodeIndex]))
-            return 0;
-
-        return $this->nodePool[$nodeIndex]->data;
     }
     //根据 VALUE ，查找<等于>该值 的一个节点,递归
     function find($data,$locationIndex = 0){
@@ -166,14 +134,6 @@ class BinaryTree{
         }
         $this->tt("未找到");
     }
-    //判断一个节点的，左子 右子  哪个 高度更大
-    function childrenMaxHeight($node){
-        if($this->getNodeHeight($node->left) > $this->getNodeHeight($node->right)){
-            return $this->getNodeHeight($node->left) ;
-        }else{
-            return $this->getNodeHeight($node->right) ;
-        }
-    }
     //左旋转
     function llRotate($nodeIndex){
         $node = $this->getNodeByIndex($nodeIndex);
@@ -191,19 +151,6 @@ class BinaryTree{
 
         $node->height = $this->childrenMaxHeight($node) + 1;
         $newThreeRootNode->height =   $this->childrenMaxHeight($newThreeRootNode) + 1;
-//        if($this->getNodeHeight($node->left) > $this->getNodeHeight($node->right)){
-//            $node->height = $this->getNodeHeight($node->left) + 1;
-//        }else{
-//            $node->height = $this->getNodeHeight($node->right) + 1;
-//        }
-
-
-//        if($this->getNodeHeight($newThreeRootNode->left) > $this->getNodeHeight($newThreeRootNode->right)){
-//            $newThreeRootNode->height = $this->getNodeHeight($newThreeRootNode->left) + 1;
-//        }else{
-//            $newThreeRootNode->height = $this->getNodeHeight($newThreeRootNode->right) + 1;
-//        }
-
         if($nodeIndex == $this->rootNodeIndex){
             $this->rootNodeIndex =$newThreeRoot;
         }
@@ -251,8 +198,14 @@ class BinaryTree{
             $node->left = $this->addLoop($data,$node->left);
             $this->nodePool[$node->left]->parent = $locationIndex;
         } else{//这是相等的情况，先忽略这种情况
-            exit(-4);
+            echo "err: qule";
+            exit;
         }
+
+        if(!$this->autoRotate){
+            return $locationIndex;
+        }
+
         //根据子节点，计算出当前节点的高度
         $node->height = $this->childrenMaxHeight($node) + 1;
         //获取左右子节点的  高度-差值
@@ -292,24 +245,68 @@ class BinaryTree{
 
         return $locationIndex;
     }
-    //循环找到一个节点的，最小的那个子节点
-    function loopFindLeftMinNode($nodeIndex){
-        while( $this->getNodeByIndex($nodeIndex)->left !== null){
-            $nodeIndex = $this->getNodeByIndex($nodeIndex)->left;
+    //判断 当前 树 是否为一棵 正常搜索树
+    function isSearch(){
+        $this->orderForeachData = null;
+        $this->foreachMiddle($this->rootNodeIndex);
+        for ($i=0 ; $i < count($this->orderForeachData) - 1 ; $i++) {
+            if($this->orderForeachData[$i] > $this->orderForeachData[$i+1]){
+                return 0;
+            }
         }
+        return 1;
+    }
+    //是否为 完全二叉树
+    //整颗树，除最后一层无所谓，上面所有层必须都是满节点的
+    //最后一层的节点必须都是靠左的，如果有节点 只有：右节点没有左节点也是错误的
+    function isComplete(){
+        $f = 1;
+        //这个值 不对，应该重新按层用堆栈再处理一次，懒得写了
+        $deepData = $this->foreachByDeep();
+        $leaf = 0;//是否为页子 节点
+        foreach ($deepData as $k=>$v) {
+            if($v['right'] !== null && $v['left'] === null){
+                $f = 0;
+                break;
+            }
+            //如果$leaf存在，证明上一次，或者上上N次已经出现过叶子 节点了，那接下来，所有的值都得是页面节点，不然就不是 完全树了
+            if($leaf && ( $v['left'] !== null || $v['right'] !==null )){
+                $f = 0;
+                break;
+            }
 
-        return $nodeIndex;
+            //证明 这是  叶子   节点
+            if($v['right'] === null && $v['left'] === nul){
+                $leaf = 1;
+            }
+        }
     }
 
-    function isEmpty(){
-        if($this->nodePoolLength)
-            return false;
+    //==================各种 打印 测试================================================================================
+
+    function testPrintAll(){
+        $this->showForeachPreorder();
+        $this->showForeachMiddle();
+        $this->showForeachPostorder();
+        $data = $this->getTreeEdge();
+        _p("之 字型打印");
+        foreach ($data as $k=>$v) {
+            echo $v." ";
+        }
+        _p(" ");
+
+        $isSearch = $this->isSearch();
+        if($isSearch)
+            _p("判断是否为搜索树:正确");
         else
-            return true;
-    }
-    public $hashMap = null;
-    public $maxLen = 0;
+            _p("判断是否为搜索树:错误");
 
+//        _p("前序 持久化");
+//        $this->saveToFile(1);
+//        $this->readFileLoadMem();
+
+
+    }
 
     //根据 深度 遍历
     //placeholder,空元素有#占位
@@ -407,6 +404,41 @@ class BinaryTree{
         echo $html;
     }
 
+    //打印二叉树边界值，也就是一个圈，从头开始，沿着树的最左边走到最底层（树的左下角），再由最左下角那个数，向右走，走到最右下角，再往回返回到头
+    function getTreeEdge(){
+        if($this->isEmpty())
+            exit("empty");
+
+
+        $data = array();
+        $deepData = $this->foreachByDeep();
+        //先打印该树的最左侧数字
+        foreach ($deepData as $k=>$nodes) {
+            $data[] = $nodes[0];
+        }
+        //打印最底层，除掉最左跟最右两个元素
+        $height = $this->getHeight($this->rootNodeIndex,0);//获取树的，高度
+        $lastDeepNode = $deepData[$height];
+        foreach ($lastDeepNode as $k=>$v) {
+            if($v != $lastDeepNode[0] && $v != $lastDeepNode[count($lastDeepNode)] - 1){
+                $data[] = $v;
+            }
+        }
+        for ($i=$height - 1 ; $i >1; $i--) {
+            $data[] = $deepData[$i][count($deepData[$i]) - 1];
+        }
+
+        return $data;
+    }
+
+    function showTreeByDeep(){
+        $deepData = $this->foreachByDeep(1);
+        $this->formatTreeEchoHtml($deepData);
+    }
+    //==================各种 打印====================================
+
+
+    //==================前序 中序 后序 遍历===============================================
     //前序 用栈实现
     function foreachPreorderStack($nodeIndex,$isSerialize = 0){
         $str = "";
@@ -456,38 +488,6 @@ class BinaryTree{
         }
         return $tree;
     }
-    //打印二叉树边界值，也就是一个一个圈，从头开始沿最左边走到最低，再由最左低的位置向右，走到最右下角，再往回返回到头
-    function showTreeEdge(){
-        if($this->isEmpty())
-            exit("empty");
-
-        $deepData = $this->foreachByDeep();
-        //先打印该树的最左侧数字
-        foreach ($deepData as $k=>$nodes) {
-            $this->tt($nodes[0]);
-        }
-        //打印最底层，除掉最左跟最右两个元素
-        $height = $this->getHeight($this->rootNodeIndex,0);
-        $lastDeepNode = $deepData[5];
-        foreach ($lastDeepNode as $k=>$v) {
-            if($v != $lastDeepNode[0] && $v != $lastDeepNode[count($lastDeepNode)] - 1){
-                $this->tt($v);
-            }
-        }
-
-        for ($i=$height ; $i >1; $i--) {
-            $this->tt($deepData[$i][count($deepData[$i]) - 1]);
-        }
-
-
-
-
-    }
-
-    function showTreeByDeep(){
-        $deepData = $this->foreachByDeep(1);
-        $this->formatTreeEchoHtml($deepData);
-    }
 
     //中序 用栈实现
     function foreachMiddleStack($nodeIndex){
@@ -516,6 +516,80 @@ class BinaryTree{
             }
         }
     }
+    //前序 根-左-右
+    //$isSerialize:是否开启序列化存文件，1开0否，!:代表结束符，也就是分割符.#:代表空，NULL
+    function foreachPreorder($nodeIndex,$isSerialize = 0){
+        if($isSerialize){
+            if($nodeIndex === null){
+                $this->orderForeachDataSaveStr .= "#!";
+            }
+        }
+        if($nodeIndex !== null){
+            $node = $this->getNodeByIndex($nodeIndex);
+            $this->orderForeachData[] = $node->data;
+            if($isSerialize){
+                $this->orderForeachDataSaveStr .= $node->data."!";
+            }
+            $this->foreachPreorder($node->left,$isSerialize);
+            $this->foreachPreorder($node->right,$isSerialize);
+        }
+
+    }
+    //中序 左-根-右
+    function foreachMiddle($nodeIndex){
+        if($nodeIndex !== null){
+            $node = $this->getNodeByIndex($nodeIndex);
+
+            $this->foreachMiddle($node->left);
+            $this->orderForeachData[] = $node->data;
+            $this->foreachMiddle($node->right);
+        }
+    }
+    //后序 左-右-根
+    function foreachPostorder($nodeIndex){
+        if($nodeIndex !== null){
+            $node = $this->getNodeByIndex($nodeIndex);
+
+            $this->foreachPostorder($node->left);
+            $this->foreachPostorder($node->right);
+            $this->orderForeachData[] = $node->data;
+
+        }
+    }
+    function showForeachPreorder(){
+        $this->orderForeachData = null;
+        _p("前序");
+        $this->foreachPreorder($this->rootNodeIndex);
+        foreach ($this->orderForeachData as $k=>$v) {
+            echo $v . " ";
+        }
+        _p(" ");
+    }
+
+
+    function showForeachMiddle(){
+        $this->orderForeachData = null;
+        _p("中序");
+        $this->foreachMiddle($this->rootNodeIndex);
+        foreach ($this->orderForeachData as $k=>$v) {
+            echo $v . " ";
+        }
+        _p(" ");
+    }
+
+    function showForeachPostorder(){
+        $this->orderForeachData = null;
+        _p("后序");
+        $this->foreachPostorder($this->rootNodeIndex);
+        foreach ($this->orderForeachData as $k=>$v) {
+            echo $v . " ";
+        }
+        _p(" ");
+    }
+
+    //==================前序 中序 后序 遍历===============================================
+
+
     //获取二叉树总高度
     function getHeight($nodeIndex,$height){
         if($nodeIndex === null){
@@ -536,47 +610,68 @@ class BinaryTree{
         return $nodeIndex2;
     }
 
-    //前序 根-左-右
-    //$isSerialize:是否开启序列化存文件，1开0否，!:代表结束符，也就是分割符.#:代表空，NULL
-    function foreachPreorder($nodeIndex,$isSerialize = 0){
-        if($isSerialize){
-            if($nodeIndex === null){
-                $this->orderForeachDataSaveStr .= "#!";
-            }
+    //根据 KEY 获取一个节点
+    function getNodeByIndex($nodeIndex){
+        if(!isset($this->nodePool[$nodeIndex])){
+            echo $nodeIndex. "getNodeByIndex is null : ".$nodeIndex;
+//            var_dump($this->nodePool[$nodeIndex]);
+            return null;
         }
-        if($nodeIndex !== null){
-            $node = $this->getNodeByIndex($nodeIndex);
-            $this->orderForeachData[] = $node->data;
-            $this->tt($node->data);
-            if($isSerialize){
-                $this->orderForeachDataSaveStr .= $node->data."!";
-            }
-            $this->foreachPreorder($node->left,$isSerialize);
-            $this->foreachPreorder($node->right,$isSerialize);
-        }
-
-    }
-    //中序 左-根-右
-    function foreachMiddle($nodeIndex){
-        if($nodeIndex !== null){
-            $node = $this->getNodeByIndex($nodeIndex);
-
-            $this->foreachMiddle($node->left);
-            $this->tt($node->data);
-            $this->foreachMiddle($node->right);
-        }
-    }
-    //后序 左-右-根
-    function foreachPostorder($nodeIndex){
-        if($nodeIndex !== null){
-            $node = $this->getNodeByIndex($nodeIndex);
-
-            $this->foreachPostorder($node->left);
-            $this->foreachPostorder($node->right);
-            $this->tt($node->data);
-        }
+        return $this->nodePool[$nodeIndex];
     }
 
+    //获取一个节点的  高度
+    function getNodeHeight($nodeIndex){
+        if(!$nodeIndex){
+            return 0;
+        }
+
+        if(!isset($this->nodePool[$nodeIndex])){
+            return 0;
+        }
+
+        return $this->nodePool[$nodeIndex]->height;
+    }
+
+
+    //设置根节点
+    function setRootIndex($nodeIndex){
+        $this->rootNodeIndex = $nodeIndex;
+        $this->tt("更新树rootIndex:".$nodeIndex);
+    }
+    //获取一个节点的  数据值
+    function getNodeData($nodeIndex){
+        if(!$nodeIndex)
+            return 0;
+
+        if(!isset($this->nodePool[$nodeIndex]))
+            return 0;
+
+        return $this->nodePool[$nodeIndex]->data;
+    }
+    //判断一个节点的，左子 右子  哪个 高度更大
+    function childrenMaxHeight($node){
+        if($this->getNodeHeight($node->left) > $this->getNodeHeight($node->right)){
+            return $this->getNodeHeight($node->left) ;
+        }else{
+            return $this->getNodeHeight($node->right) ;
+        }
+    }
+    //循环找到一个节点的，最小的那个子节点
+    function loopFindLeftMinNode($nodeIndex){
+        while( $this->getNodeByIndex($nodeIndex)->left !== null){
+            $nodeIndex = $this->getNodeByIndex($nodeIndex)->left;
+        }
+
+        return $nodeIndex;
+    }
+
+    function isEmpty(){
+        if($this->nodePoolLength)
+            return false;
+        else
+            return true;
+    }
 
     function createNode($data){
         //先建一个节点类
@@ -592,18 +687,21 @@ class BinaryTree{
         $this->tt("create node index:".$nodeIndex);
         return $nodeIndex;
     }
+
+    //持久化及加载到内存=====================================
+
+
     //将内存中的树，序列化，存文件中
     function readFileLoadMem(){
-        $str = $this->foreachPreorderStack($this->rootNodeIndex, 1);
-        if (!$str)
-            exit("str is null");
-
-        $this->tt($str);
+        $str = file_get_contents($this->dataFileSavePath);
         $str = substr($str,0,strlen($str)-1);
+
 
         include_once PLUGIN . DS . "structure" . DS . "stack.php";
         $StackArr = new StackArr();
         $StackArr->debug = 0;
+
+        //把字符串，按照分割符，打散成若干元素，然后都扔进 堆栈里
         $arr = explode("!", $str);
 
         $this->tt($str);
@@ -614,55 +712,21 @@ class BinaryTree{
         $this->nodePool = null;
         $this->nodePoolLength = 0;
         $this->readFileLoadMemPreOrder($StackArr);
-
-
-
-//        var_dump($this->nodePool);exit;
     }
     //type:1先序2中序3后序4层级
     function saveToFile($type){
         if(1 == $type){
+            $this->orderForeachData = null;
+            $this->orderForeachDataSaveStr = null;
+
             $this->foreachPreorder($this->rootNodeIndex,1);
-            var_dump($this->orderForeachDataSaveStr);
-            var_dump($this->orderForeachData);exit;
+            _p($this->orderForeachDataSaveStr);
+            $fd = fopen($this->dataFileSavePath,"w+");
+            fwrite($fd,$this->orderForeachDataSaveStr);
         }elseif(4 == $type){
             $this->foreachByDeep();
         }
 
-    }
-
-    function readSaveFile(){
-        //#代表NULL,就是空，为了方便打印出整颗树在HTML 上
-        while ( $nodes = $queue->popALLFromHead()){
-            $this->tt("level:".$level);
-            foreach ($nodes as $k=>$node) {
-                if($node == "#"){
-                    $data[$level][] = "#";
-                    continue;
-                }
-                $this->tt(" im node:".$node->data."  height:".$node->height);
-                $data[$level][] = $node->data;
-
-                if($node->left !== null && $node->right !== null){
-                    $queue->pushHead($this->nodePool[$node->left]);
-                    $queue->pushHead($this->nodePool[$node->right]);
-                }elseif($node->left === null && $node->right === null){
-                    $queue->pushHead("#");
-                    $queue->pushHead("#");
-                }else{
-                    if($node->left !== null && $node->right === null){
-                        $queue->pushHead($this->nodePool[$node->left]);
-                        $queue->pushHead("#");
-                    }else{
-                        $queue->pushHead("#");
-                        $queue->pushHead($this->nodePool[$node->right]);
-                    }
-                }
-
-
-            }
-            $level++;
-        }
     }
 
     function readFileLoadMemPreOrder($stack){
@@ -671,7 +735,6 @@ class BinaryTree{
             $this->tt("stack is empty");
             return false;
         }
-
 
         if($nodeStr == "#"){
             return null;
@@ -687,22 +750,80 @@ class BinaryTree{
 
         return $newNodeIndex;
     }
+
+    //持久化及加载到内存=====================================
+
     //查找一个节点的：最后右侧结点
     function findNodeRightmost($nodeIndex){
         $node = $this->getNodeByIndex($nodeIndex);
         if($node->right === null){
-            return $node;
+            return $nodeIndex;
         }
-
         return $this->findNodeRightmost($node->right);
     }
-
-    //Morris遍历法，空间复杂度为O（1）
-    function foreachByMorris($nodeIndex){
+    //$sourceNodeIndex:防止死循环的，用于  morris 遍历的
+    function findNodeRightmostIsLoop($nodeIndex,$sourceNodeIndex){
         $node = $this->getNodeByIndex($nodeIndex);
-        if($node){
-
+        if($node->right === null){
+            return $nodeIndex;
         }
+
+        $sourceNode = $this->getNodeByIndex($sourceNodeIndex);
+        $rightNode = $this->getNodeByIndex($node->right);
+        if($sourceNode->data == $rightNode->data){
+            return $nodeIndex;
+        }
+        return $this->findNodeRightmostIsLoop($node->right,$sourceNodeIndex);
+    }
+
+    //Morris遍历法，中序，空间复杂度为O（1）
+    function foreachByMorrisByLeft($nodeIndex){
+        $node = $this->getNodeByIndex($nodeIndex);
+        if($node === null){
+            exit("err1 foreachByMorrisByLeft");
+
+        }else{
+            if($node->left ===null){
+                $this->tt("左输出:".$node->data . " ");
+                $this->foreachByMorrisByRight($node->right);
+            }else{
+                //查找该节点的左侧，最右的节点
+                $rightmost = $this->findNodeRightmost($node->left);
+//                var_dump($this->getNodeByIndex($rightmost));
+                $this->nodePool[$rightmost]->right = $nodeIndex;
+                $this->tt($this->nodePool[$rightmost]->data. " right 变成".$node->data);
+                $this->foreachByMorrisByLeft($node->left);
+            }
+        }
+    }
+
+    function foreachByMorrisByRight($nodeIndex){
+        $node = $this->getNodeByIndex($nodeIndex);
+//       $this->tt("new foreachByMorrisByRight index:".$nodeIndex);
+
+        if($node === null){
+            exit("err1 foreachByMorrisByRight");
+        }else{
+            $this->tt("data:".$node->data);
+            if($node->left === null){
+                $this->tt("右输出:".$node->data . " ,right index:" .$node->right);
+                return $this->foreachByMorrisByRight($node->right);
+            }
+            $NodeRightmostIndex = $this->findNodeRightmostIsLoop($node->left,$nodeIndex);
+            $NodeRightmost = $this->getNodeByIndex($NodeRightmostIndex);
+            $NodeRightmostRight = $this->getNodeByIndex($NodeRightmost->right);
+            if($NodeRightmostRight !== null && $NodeRightmostRight->data == $node->data){
+                $this->tt("右输出:".$node->data );
+                $this->nodePool[$NodeRightmostIndex]->right = null;
+                return $this->foreachByMorrisByRight($node->right);
+            }
+            $this->foreachByMorrisByLeft($nodeIndex);
+        }
+    }
+
+    function foreachByMorrisTest(){
+        $this->foreachByMorrisByLeft($this->rootNodeIndex);
+        var_dump($this->nodePool);exit;
     }
 
 }

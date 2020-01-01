@@ -2,6 +2,10 @@
 class IndexCtrl extends BaseCtrl  {
 
     function index(){
+
+        new McacheLib();
+        exit;
+
         //栈============
         include_once PLUGIN.DS."structure".DS."stack.php";
 //        //先测试下基本栈是否正确
@@ -54,59 +58,59 @@ class IndexCtrl extends BaseCtrl  {
 
 
 
-        include_once PLUGIN.DS."structure".DS."binaryTree.php";
-        $tree  = new BinaryTree();
-        $arr = array(10,1,11,3,4,20,16,7,2,5,13,6);
-        $tree->addGroup($arr);
-        $tree->showTreeByDeep();
+//        include_once PLUGIN.DS."structure".DS."binaryTree.php";
+//        $tree  = new BinaryTree();
+//        $tree->debug = 0;
+//        $arr = array(10,1,11,3,4,20,16,7,2,5,13,6);
+//        $tree->addGroup($arr);
+//        $tree->showTreeByDeep();
+//        $tree->testPrintAll();
 
-//        $tree->tt("开始前序");
-//        $tree->foreachPreorder($tree->rootNodeIndex);
+
+
 //        $height = $tree->getHeight($tree->rootNodeIndex,0);
 //        var_dump($height);exit;
 //        $tree->showTreeEdge();
 //        $data = $c->foreachPreorderStack($c->rootNodeIndex,1);
-        $tree->saveToFile(1);
-        exit;
+//        $tree->saveToFile(1);
+//        $tree->foreachByMorrisTest();
+//        $KMP->violence("abcdefg","bcd");
+//        $KMP->search("abcacabdd","cab");
+//        exit;
 
+        include_once PLUGIN.DS."structure".DS."binaryTreeTraining.php";
+        $btt =  new BinaryTreeTraining();
+//        $btt->findSearchTreeInTreeTest();
+//        exit;
 
-//
-////        $c->readFileLoadMem();exit;
-//
-//        $c->tt("开始中序");
-//        $c->foreachMiddle($c->rootNodeIndex);
-//        $c->foreachMiddleStack($c->rootNodeIndex);exit;
-//        $c->tt("开始后序");
-//        $c->foreachPostorder($c->rootNodeIndex);
-
-
-//        $num = $c->balance();
-//        var_dump($num);
+//        include_once PLUGIN.DS."structure".DS."kmp.php";
+//        $KMP = new KMP();
 
 
 
         //二叉树============================================================
 
+
+
+
+
         include_once PLUGIN.DS."structure".DS."matrix.php";
         $m = new Matrix();
-////        $m->multiply();exit;
-////        $money = array(20,5,10);
-////        $m->changeMoney($money,100);
-//
-//        $money = array(5,2,3);
-//        $x = 20;
-//        $m->changeMoney2($money,$x);
-//
-//
+//        $m->testFibonacci();exit;
+//        $m->testMinPathSum();exit;
+//        $m->testChangeMoney();exit;
+//            $m->testLongestIncreasingSubsequence();exit;
+//        $m->testGameMapMinHP();exit;
+//        $m->testPokerGameFirstLast();exit;
+//        $m->testQueen8();
+
+
+
 //        $m->changeMoneyLast($money,$x);
-//        exit;
 //        $rs = $m->loopChangeMoneyMap($money,0,$x);
 //        echo "loop cnt".($m->loopChangeMoneyMapCnt)."<br/>";
 //        echo "rs:".($rs)."<br/>";
 //        var_dump($m->loopChangeMoneyMapData);
-//        exit;
-//        $arr  = array(1,7,4,1,7,9,3,1,6,7,8);
-//        $m->addTestNumber($arr);
 //        $rs = $m->unsortUnsignedIntegerSumRange(20);
 //        exit;
 
@@ -140,12 +144,35 @@ class IndexCtrl extends BaseCtrl  {
 //        var_dump($f->numberPool);
 //        exit;
 
+        //==================矩阵=======================================
+
 //        include_once PLUGIN.DS."structure".DS."bloomFilter.php";
 //        $bloom = new BloomFilter(100);
+
+//        $bloom->formulas();
+//        $bloom->loadDataFromDisk();
+//        $bloom->makeTestData();
 //        $bloom->add("absdfsdfsdfsdfcd");
-//
+
+        //=============布隆 过滤器
+
+        include_once PLUGIN.DS."structure".DS."stackTopOrder.php";
+        $sto  = new StackTopOrder(10);
+        $sto->test();
+
+        exit;
+
+
+
+        include_once PLUGIN.DS."structure".DS."bigData.php";
+        $b  = new BigData();
+        $b->testFindNumberCnt();exit;
+
+
+        //================大数据
+
 //        include_once PLUGIN.DS."structure".DS."stringOP.php";
-//        $s = new StringOP();
+        $s = new StringOP();
 //
 //        $dict = new WordDictionaryTree();
 //        $dict->addWord("abcd");

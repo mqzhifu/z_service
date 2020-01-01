@@ -3,7 +3,8 @@ class BloomFilter{
     public $hashFunction = null;
     public $hashClass = null;
     public $bitMap = [];
-
+    public $diskDataPath = "D:\www\z_service\kernel\plugins\structure\bloomFilterData.txt";
+    public $tolerableErrorRate = 0.0001;//容错 率，%0.01
     function __construct($bitMapLength){
         $this->hashClass =  new BloomFilterHash();
         $this->hashFunction = get_class_methods("BloomFilterHash");
@@ -23,6 +24,73 @@ class BloomFilter{
 
         var_dump($this->bitMap);exit;
 
+    }
+
+    function formulas($line = 0){
+//        $e =  0.69314718056;，如下是约等于
+//        $e = 0.7;
+//        var_dump(log(8,2));exit;
+
+
+        $line = 100000;//总行数
+        $p = 0.0001;//错误率0.01%
+        $a = log($p);//以自然数E为底
+        $b = $line * $a;
+        $e2 = log(2);//以自然数E为底2的对数
+        $e2Power = pow($e2,2);
+        $length = abs( $b / $e2Power);
+        $bitMapNum = round($length,0);
+
+        _p("line:$line,p=$p, a=$a , b=$b , e2 = $e2 ,e2power:$e2Power ,bitMapNum= $bitMapNum");
+
+        $k = $e2 * $bitMapNum / $line;
+        $k = round($k,0);
+
+        _p("func num:$k");
+
+
+        exit;
+    }
+
+    //
+    function loadDataFromDisk(){
+        set_time_limit(10);
+        $fd = fopen($this->diskDataPath,"r");
+//        $fd = fopen("D:\www\z_service\kernel\plugins\structure/test.txt","r");
+//        $rs = fseek($fd,1);
+//        var_dump($rs);
+
+        $line = 1;//最后一行是没有 换行符的
+        while(!feof($fd)){
+            $bufLine = fread($fd,20000);
+            for ($i=0 ; $i < strlen($bufLine) ; $i++) {
+                if(  $bufLine[$i]  == "\n" ){
+                    $line++;
+                }
+            }
+        }
+
+
+        var_dump($line);
+
+
+        exit;
+    }
+
+    function makeTestData(){
+        $word = "abcdefghijklmnopqrstuvwxyzABCDEFGHIZKLMNOPQRSTUVWXYZ";
+        $wordLen = strlen($word);
+
+        $fd = fopen($this->diskDataPath,"w+");
+        $end = 100000;
+        $base = "http://local.z.com/";
+        for ($i=0 ; $i < $end ; $i++) {
+            $r = rand(0,$wordLen - 11);
+            $str = $base .substr($word,$r,10)."\r\n";
+            fwrite($fd,$str);
+        }
+
+        exit;
     }
 }
 

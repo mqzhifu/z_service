@@ -2,7 +2,7 @@
 //队列 先进先出
 
 include_once PLUGIN.DS."structure".DS."linkDouble.php";
-class Queue{
+class QueueOrder{
     public $head = null;
     public $foot = null;
     public $length = 0;
@@ -21,6 +21,11 @@ class Queue{
         $this->link = new LinkDouble();
         $this->link->debug = 0;
     }
+
+    function push($data){
+
+    }
+
 
     function pushHead($data){
         //在头部加一个元素

@@ -8,7 +8,7 @@ class LinkDouble{
     public $nodePoolLength = 0;//记录，一共有多少个节点
     //单向 双向 循环
     public $nodePoolAddress = 0;
-    public $debug = 1;
+    public $debug = 0;
     function p($info,$br = 1){
         if($this->debug){
             _p($info,$br);
@@ -30,7 +30,7 @@ class LinkDouble{
     function addNodePool($node){
 //        $index = count($this->nodePool) ;//这里按说应该要减去1，但为了下面
         $index = $this->nodePoolAddress++;
-        _p("new node index:".$index);
+        $this->p("new node index:".$index);
         $node['current'] = $index;
         $this->nodePool[$index] = $node;
 
